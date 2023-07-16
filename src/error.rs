@@ -7,9 +7,10 @@ pub type ATResult<T> = Result<T, ErrAutoType>;
 pub enum ErrType {
     SequenceNotExist(String),
     WrongSequenceArg(String),
-    InvalidSequenceKey(String),
+    InvalidKeyFormat(String),
     KeyIsInSequences(String),
     UnknownSequence(String),
+    KeyIsInCombinations(String),
 }
 
 #[derive(Debug)]
@@ -26,9 +27,10 @@ impl Display for ErrType {
         match self {
             SequenceNotExist(s) => write!(f, "Key: {s} not found"),
             WrongSequenceArg(s) => write!(f, "Sequence argument \"{s}\" have wrong format"),
-            InvalidSequenceKey(s) => write!(f, "Invalid sequence key: {s}"),
+            InvalidKeyFormat(s) => write!(f, "Invalid sequence key: {s}"),
             KeyIsInSequences(s) => write!(f, "Key \"{s}\" is now in sequences"),
             UnknownSequence(s) => write!(f, "Sequence \"{s}\" is not registered"),
+            KeyIsInCombinations(s) => write!(f, "Key \"{s}\" is now in combinations."),
         }
     }
 }

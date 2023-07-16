@@ -60,38 +60,41 @@ impl Sequences {
         }
     }
 
-    fn is_valid_key(key: &str) -> bool {
-        key.chars().position(|c| !c.is_alphabetic()).is_none()
+    fn is_valid_key(key: &str) -> ATResult<()> {
+        if key.chars().position(|c| !c.is_alphabetic()).is_none() {
+            Ok(())
+        } else {
+            Err(ErrAutoType::new(ErrType::InvalidKeyFormat(String::from(
+                key,
+            ))))
+        }
     }
 
     pub fn is_valid(&self) -> bool {
         self.0
             .iter()
-            .find(|(key, _)| Self::is_valid_key(key))
+            .find(|(key, _)| Self::is_valid_key(key).is_err())
             .is_none()
     }
 
     pub fn insert(&mut self, key: &str, value: &str) -> ATResult<()> {
-        if Self::is_valid_key(key) {
-            match self.0.get(key) {
-                Some(_) => Err(ErrAutoType::new(ErrType::KeyIsInSequences(String::from(
-                    key,
-                )))),
-                None => {
-                    self.0.insert(String::from(key), String::from(value));
-                    Ok(())
-                }
-            }
-        } else {
-            Err(ErrAutoType::new(ErrType::InvalidSequenceKey(String::from(
+        Self::is_valid_key(key)?;
+        match self.0.get(key) {
+            Some(_) => Err(ErrAutoType::new(ErrType::KeyIsInSequences(String::from(
                 key,
-            ))))
+            )))),
+            None => {
+                self.0.insert(String::from(key), String::from(value));
+                Ok(())
+            }
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use std::collections::hash_map;
+
     use super::*;
 
     fn example_sequences() -> Sequences {
@@ -99,13 +102,13 @@ mod tests {
     }
 
     #[test]
-    fn test_new() -> ATResult<()> {
+    fn new() -> ATResult<()> {
         Sequences::new(&[("A", "A1"), ("B", "B1")])?;
         Ok(())
     }
 
     #[test]
-    fn test_insert() {
+    fn insert() {
         let mut seq = Sequences::default();
         assert!(seq.insert("A", "").is_ok());
         assert!(seq.insert("asdf", "").is_ok());
@@ -118,7 +121,7 @@ mod tests {
     }
 
     #[test]
-    fn test_basic_get_sequence() {
+    fn basic_get_sequence() {
         let seq = example_sequences();
         assert_eq!(seq.get_sequence("A"), Ok(String::from("A1")));
         assert_eq!(seq.get_sequence("AB"), Ok(String::from("AB1")));
@@ -137,7 +140,7 @@ mod tests {
     }
 
     #[test]
-    fn test_numbered_get_sequence() -> ATResult<()> {
+    fn numbered_get_sequence() -> ATResult<()> {
         let seq = example_sequences();
         assert_eq!(&seq.get_sequence("B1")?, "B1");
         assert_eq!(&seq.get_sequence("BA1")?, "BA1");
@@ -162,7 +165,7 @@ mod tests {
     }
 
     #[test]
-    fn test_range_get_sequence() -> ATResult<()> {
+    fn range_get_sequence() -> ATResult<()> {
         let seq = example_sequences();
         let repeat_check = |sequence: &str, output: &str, min, max| -> ATResult<()> {
             let mut generated;
@@ -183,7 +186,28 @@ mod tests {
     }
 
     #[test]
-    fn test_de_serialization() {
+    fn is_valid() {
+        assert!(example_sequences().is_valid());
+
+        let mut seq = HashMap::new();
+        seq.insert(String::from("1"), String::from(""));
+        assert!(!Sequences(seq).is_valid());
+
+        let mut seq = HashMap::new();
+        seq.insert(String::from("A4"), String::from(""));
+        assert!(!Sequences(seq).is_valid());
+
+        let mut seq = HashMap::new();
+        seq.insert(String::from("/A"), String::from(""));
+        assert!(!Sequences(seq).is_valid());
+
+        let mut seq = HashMap::new();
+        seq.insert(String::from("B A"), String::from(""));
+        assert!(!Sequences(seq).is_valid());
+    }
+
+    #[test]
+    fn de_serialization() {
         let seq = example_sequences();
         let serialized = serde_json::to_string(&seq).unwrap();
         println!("{}", serialized);
