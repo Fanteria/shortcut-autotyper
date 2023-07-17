@@ -1,7 +1,9 @@
-use crate::error::{ATResult, ErrAutoType, ErrType};
-use rand::Rng;
+use crate::{
+    error::{ATResult, ErrAutoType, ErrType},
+    command::Command,
+};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 
 #[derive(Deserialize, Serialize, Default, Debug, PartialEq)]
 pub struct Sequences(HashMap<String, String>);
@@ -16,69 +18,24 @@ impl Sequences {
     }
 
     pub fn get_sequence(&self, key: &str) -> ATResult<String> {
-        let index = match key.chars().position(|c| c.is_digit(10)) {
-            Some(i) => i,
-            None => {
-                return match self.0.get(key) {
-                    Some(s) => Ok(s.clone()),
-                    None => Err(ErrAutoType::new(ErrType::SequenceNotExist(String::from(
-                        key,
-                    )))),
-                }
-            }
-        };
-
-        let base = match self.0.get(&key[..index]) {
-            Some(s) => s,
-            None => {
-                return Err(ErrAutoType::new(ErrType::SequenceNotExist(String::from(
-                    &key[..index],
-                ))))
-            }
-        };
-        let args = &key[index..];
-        if let Ok(times) = args.parse::<usize>() {
-            return Ok(base.repeat(times));
-        }
-        let index = match args.find("..") {
-            Some(i) => i,
-            None => {
-                return Err(ErrAutoType::new(ErrType::WrongSequenceArg(String::from(
-                    args,
-                ))))
-            }
-        };
-
-        match (
-            args[..index].parse::<usize>(),
-            args[index + 2..].parse::<usize>(),
-        ) {
-            (Ok(start), Ok(end)) => Ok(base.repeat(rand::thread_rng().gen_range(start..=end))),
-            _ => Err(ErrAutoType::new(ErrType::WrongSequenceArg(String::from(
-                args,
+        let command = Command::from_str(key)?;
+        match self.0.get(command.get_name()) {
+            Some(s) => Ok(s.repeat(command.get_times())),
+            None => Err(ErrAutoType::new(ErrType::SequenceNotExist(String::from(
+                command.get_name(),
             )))),
-        }
-    }
-
-    fn is_valid_key(key: &str) -> ATResult<()> {
-        if key.chars().position(|c| !c.is_alphabetic()).is_none() {
-            Ok(())
-        } else {
-            Err(ErrAutoType::new(ErrType::InvalidKeyFormat(String::from(
-                key,
-            ))))
         }
     }
 
     pub fn is_valid(&self) -> bool {
         self.0
             .iter()
-            .find(|(key, _)| Self::is_valid_key(key).is_err())
+            .find(|(key, _)| Command::is_valid_name(key).is_err())
             .is_none()
     }
 
     pub fn insert(&mut self, key: &str, value: &str) -> ATResult<()> {
-        Self::is_valid_key(key)?;
+        Command::is_valid_name(key)?;
         match self.0.get(key) {
             Some(_) => Err(ErrAutoType::new(ErrType::KeyIsInSequences(String::from(
                 key,
@@ -93,8 +50,6 @@ impl Sequences {
 
 #[cfg(test)]
 mod tests {
-    use std::collections::hash_map;
-
     use super::*;
 
     fn example_sequences() -> Sequences {
