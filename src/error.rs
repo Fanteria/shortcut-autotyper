@@ -1,5 +1,6 @@
 use std::error::Error;
 use std::fmt::{self, Display};
+use std::ops::Range;
 
 pub type ATResult<T> = Result<T, ErrAutoType>;
 
@@ -9,8 +10,10 @@ pub enum ErrType {
     WrongSequenceArg(String),
     InvalidKeyFormat(String),
     KeyIsInSequences(String),
+    KeyCannotBeEmpty,
     UnknownSequence(String),
     KeyIsInCombinations(String),
+    RangeMustNotBeEmpty(Range<usize>),
 }
 
 #[derive(Debug)]
@@ -25,12 +28,14 @@ impl Display for ErrType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use ErrType::*;
         match self {
-            SequenceNotExist(s) => write!(f, "Key: {s} not found"),
+            SequenceNotExist(s) => write!(f, "Key \"{s}\" not found"),
             WrongSequenceArg(s) => write!(f, "Sequence argument \"{s}\" have wrong format"),
-            InvalidKeyFormat(s) => write!(f, "Invalid sequence key: {s}"),
+            InvalidKeyFormat(s) => write!(f, "Invalid sequence key \"{s}\""),
             KeyIsInSequences(s) => write!(f, "Key \"{s}\" is now in sequences"),
+            KeyCannotBeEmpty => write!(f, "Key cannot be empty."),
             UnknownSequence(s) => write!(f, "Sequence \"{s}\" is not registered"),
             KeyIsInCombinations(s) => write!(f, "Key \"{s}\" is now in combinations."),
+            RangeMustNotBeEmpty(r) => write!(f, "Range \"{}..{}\" is empty.", r.start, r.end),
         }
     }
 }
