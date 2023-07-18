@@ -1,6 +1,7 @@
 use crate::error::{ATResult, ErrAutoType, ErrType};
 use rand::Rng;
 use std::{ops::Range, str::FromStr};
+use std::fmt::{self, Display};
 
 #[derive(Debug, PartialEq, Eq)]
 enum Times {
@@ -70,6 +71,15 @@ impl FromStr for Command {
     }
 }
 
+impl Display for Command {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self.times {
+            Some(times) => write!(f, "{}{}", self.name, times),
+            None => write!(f, "{}", self.name),
+        }
+    }
+}
+
 impl FromStr for Times {
     type Err = ErrAutoType;
 
@@ -86,6 +96,16 @@ impl FromStr for Times {
             (Ok(start), Ok(end)) => Err(ErrAutoType::new(ErrType::RangeMustNotBeEmpty(start..end))),
             _ => Err(ErrAutoType::new(ErrType::WrongSequenceArg(String::from(s)))),
         }
+    }
+}
+
+impl Display for Times {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Times::Number(n) => write!(f, "{n}"),
+            Times::Range(r) => write!(f, "{}..{}", r.start, r.end),
+        }
+        
     }
 }
 
