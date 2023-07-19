@@ -16,6 +16,27 @@ pub struct Command {
 }
 
 impl Command {
+    pub fn new(name: &str) -> Command {
+        Command {
+            name: String::from(name),
+            times: None,
+        }
+    }
+
+    pub fn new_number(name: &str, num: usize) -> Command {
+        Command {
+            name: String::from(name),
+            times: Some(Times::Number(num)),
+        }
+    }
+
+    pub fn new_range(name: &str, range: Range<usize>) -> Command {
+        Command {
+            name: String::from(name),
+            times: Some(Times::Range(range)),
+        }
+    }
+
     pub fn is_valid(&self) -> ATResult<()> {
         Self::is_valid_name(&self.name)
     }
@@ -115,26 +136,6 @@ mod tests {
 
     use super::*;
 
-    fn new_command(name: &str) -> Command {
-        Command {
-            name: String::from(name),
-            times: None,
-        }
-    }
-
-    fn new_command_number(name: &str, num: usize) -> Command {
-        Command {
-            name: String::from(name),
-            times: Some(Times::Number(num)),
-        }
-    }
-
-    fn new_command_range(name: &str, range: Range<usize>) -> Command {
-        Command {
-            name: String::from(name),
-            times: Some(Times::Range(range)),
-        }
-    }
 
     #[test]
     fn is_valid_name() -> ATResult<()> {
@@ -187,11 +188,11 @@ mod tests {
 
     #[test]
     fn command_from_str() -> ATResult<()> {
-        assert_eq!(Command::from_str("A")?, new_command("A"));
-        assert_eq!(Command::from_str("AB")?, new_command("AB"));
-        assert_eq!(Command::from_str("A1")?, new_command_number("A", 1));
-        assert_eq!(Command::from_str("CDE5")?, new_command_number("CDE", 5));
-        assert_eq!(Command::from_str("A3..6")?, new_command_range("A", 3..6));
+        assert_eq!(Command::from_str("A")?, Command::new("A"));
+        assert_eq!(Command::from_str("AB")?, Command::new("AB"));
+        assert_eq!(Command::from_str("A1")?, Command::new_number("A", 1));
+        assert_eq!(Command::from_str("CDE5")?, Command::new_number("CDE", 5));
+        assert_eq!(Command::from_str("A3..6")?, Command::new_range("A", 3..6));
         assert!(Command::from_str("").is_err());
         assert!(Command::from_str("A B").is_err());
         assert!(Command::from_str("A 5").is_err());
@@ -203,17 +204,18 @@ mod tests {
     fn get_times() {
         let range_check = |start, end| {
             for _ in 0..100 {
-                let times = new_command_range("", start..end).get_times();
+                let times = Command::new_range("", start..end).get_times();
                 assert!(times >= start);
                 assert!(times < end);
             }
         };
-        assert_eq!(new_command("").get_times(), 1);
-        assert_eq!(new_command_number("", 1).get_times(), 1);
-        assert_eq!(new_command_number("", 5).get_times(), 5);
-        assert_eq!(new_command_number("", 66).get_times(), 66);
+        assert_eq!(Command::new("").get_times(), 1);
+        assert_eq!(Command::new_number("", 1).get_times(), 1);
+        assert_eq!(Command::new_number("", 5).get_times(), 5);
+        assert_eq!(Command::new_number("", 66).get_times(), 66);
         range_check(10, 100);
         range_check(0, 3);
         range_check(3, 7);
     }
+
 }

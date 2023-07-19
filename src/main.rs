@@ -1,6 +1,7 @@
 #![allow(dead_code, unused_variables)]
 
 mod error;
+mod command;
 mod sequence;
 mod combinations;
 

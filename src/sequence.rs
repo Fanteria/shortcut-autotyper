@@ -27,6 +27,10 @@ impl Sequences {
         }
     }
 
+    pub fn get(&self, key: &str) -> Option<&String> {
+        self.0.get(key)
+    }
+
     pub fn is_valid(&self) -> bool {
         self.0
             .iter()
