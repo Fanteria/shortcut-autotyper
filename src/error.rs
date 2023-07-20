@@ -3,7 +3,7 @@ use std::fmt::{self, Display};
 use std::ops::Range;
 
 pub type ATResult<T> = Result<T, ErrAutoType>;
-pub type ATVecResult<T> = Result<Vec<T>, Vec<ErrAutoType>>;
+pub type ATVecResult<T> = Result<T, Vec<ErrAutoType>>;
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum ErrType {

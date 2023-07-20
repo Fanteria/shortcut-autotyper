@@ -1,5 +1,5 @@
 use crate::{
-    error::{ATResult, ErrAutoType, ErrType},
+    error::{ATResult, ATVecResult, ErrAutoType, ErrType},
     command::Command,
 };
 use serde::{Deserialize, Serialize};
@@ -31,11 +31,15 @@ impl Sequences {
         self.0.get(key)
     }
 
+    pub fn validity(&self) -> ATVecResult<()> {
+        // self.0.iter().map(|(key, _)| Command::is_valid_name(key)).
+        todo!();
+    }
+
     pub fn is_valid(&self) -> bool {
-        self.0
+        !self.0
             .iter()
-            .find(|(key, _)| Command::is_valid_name(key).is_err())
-            .is_none()
+            .any(|(key, _)| Command::is_valid_name(key).is_err())
     }
 
     pub fn insert(&mut self, key: &str, value: &str) -> ATResult<()> {

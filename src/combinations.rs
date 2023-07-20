@@ -49,24 +49,22 @@ impl Combinations {
     fn decompose(combination: &str) -> ATResult<Vec<Command>> {
         combination
             .split_whitespace()
-            .map(|c| Command::from_str(c))
+            .map(Command::from_str)
             .collect()
     }
 
     pub fn is_valid(&self) -> bool {
-        self.combinations
+        !self.combinations
             .iter()
-            .find(|(key, value)| {
+            .any(|(key, value)| {
                 Command::is_valid_name(key).is_err()
                     || match Self::decompose(value) {
                         Ok(combinations) => combinations
                             .iter()
-                            .find(|command| self.sequences.get(command.get_name()).is_none())
-                            .is_some(),
+                            .any(|command| self.sequences.get(command.get_name()).is_none()),
                         Err(_) => true,
                     }
             })
-            .is_none()
     }
 
     pub fn insert(&mut self, key: &str, value: &str) -> ATResult<()> {

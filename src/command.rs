@@ -46,7 +46,7 @@ impl Command {
             return Err(ErrAutoType::new(ErrType::KeyCannotBeEmpty));
         }
 
-        if name.chars().position(|c| !c.is_alphabetic()).is_none() {
+        if !name.chars().any(|c| !c.is_alphabetic()) {
             Ok(())
         } else {
             Err(ErrAutoType::new(ErrType::InvalidKeyFormat(String::from(
@@ -73,7 +73,7 @@ impl FromStr for Command {
     type Err = ErrAutoType;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.chars().position(|c| c.is_digit(10)) {
+        match s.chars().position(|c| c.is_ascii_digit()) {
             Some(i) => {
                 Self::is_valid_name(&s[..i])?;
                 Ok(Command {
