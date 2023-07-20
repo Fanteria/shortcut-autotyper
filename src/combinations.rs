@@ -96,6 +96,14 @@ impl Combinations {
 
         Ok(())
     }
+
+    pub fn deserialize(data: &str) -> ATResult<Combinations> {
+        let deserialized = serde_json::from_str::<Combinations>(data).unwrap();
+        deserialized.sequences.is_valid();
+        deserialized.is_valid();
+        // TODO implement
+        Ok(deserialized)
+    }
 }
 
 #[cfg(test)]
@@ -111,12 +119,6 @@ mod tests {
     }
 
     #[test]
-    fn new() -> ATResult<()> {
-        // TODO implement
-        Ok(())
-    }
-
-    #[test]
     fn get_sequence() -> ATResult<()> {
         let combinations = example_combination();
         for _ in 0..1000 {
@@ -127,14 +129,12 @@ mod tests {
         }
         for _ in 0..1000 {
             let seq = combinations.get_sequence("X2")?; 
-            println!("{seq}");
             assert!(seq.len() >= "A1A1B1B1B1".len() * 2, "Sequence: {}\n", seq);
             assert!(seq.len() <= "A1A1B1B1B1B1B1".len() * 2, "Sequence: {}\n", seq);
             assert!(seq.starts_with("A1A1B1B1B1"), "Sequence: {}\n", seq);
         }
         for _ in 0..1000 {
             let seq = combinations.get_sequence("X3..5")?; 
-            println!("{seq}");
             assert!(seq.len() >= "A1A1B1B1B1".len() * 3, "Sequence: {}\n", seq);
             assert!(seq.len() <= "A1A1B1B1B1B1B1".len() * 5, "Sequence: {}\n", seq);
             assert!(seq.starts_with("A1A1B1B1B1"), "Sequence: {}\n", seq);
