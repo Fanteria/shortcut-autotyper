@@ -31,9 +31,13 @@ impl Sequences {
         self.0.get(key)
     }
 
-    pub fn validity(&self) -> ATVecResult<()> {
-        // self.0.iter().map(|(key, _)| Command::is_valid_name(key)).
-        todo!();
+    pub fn get_errors(&self) -> ATVecResult<()> {
+        let errors: Vec<_> = self.0.iter().filter_map(|(key, _)| Command::is_valid_name(key).err()).collect();
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
     }
 
     pub fn is_valid(&self) -> bool {
@@ -146,6 +150,27 @@ mod tests {
         repeat_check("AB5..10", "AB1", 5, 10)?;
 
         Ok(())
+    }
+
+    #[test]
+    fn get_errors() {
+        assert_eq!(example_sequences().get_errors(), Ok(()));
+
+        let mut seq = HashMap::new();
+        seq.insert(String::from(""), String::from(""));
+        seq.insert(String::from("1"), String::from(""));
+        seq.insert(String::from("A4"), String::from(""));
+        seq.insert(String::from("/A"), String::from(""));
+        seq.insert(String::from("B A"), String::from(""));
+        let seq = Sequences(seq);
+        let errors = seq.get_errors().unwrap_err(); 
+
+        assert_eq!(errors.len(), 5);
+        assert!(errors.contains(&ErrAutoType::new(ErrType::KeyCannotBeEmpty)));
+        assert!(errors.contains(&ErrAutoType::new(ErrType::InvalidKeyFormat(String::from("1")))));
+        assert!(errors.contains(&ErrAutoType::new(ErrType::InvalidKeyFormat(String::from("A4")))));
+        assert!(errors.contains(&ErrAutoType::new(ErrType::InvalidKeyFormat(String::from("/A")))));
+        assert!(errors.contains(&ErrAutoType::new(ErrType::InvalidKeyFormat(String::from("B A")))));
     }
 
     #[test]
