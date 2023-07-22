@@ -25,6 +25,13 @@ impl Sequences {
         }
     }
 
+    pub fn get_sequence_cmd(&self, command: &Command) -> ATResult<String> {
+        match self.0.get(command.get_name()) {
+            Some(s) => Ok(s.repeat(command.get_times())),
+            None => ErrType::SequenceNotExist(String::from(command.get_name())).into(),
+        }
+    }
+
     pub fn get(&self, key: &str) -> Option<&String> {
         self.0.get(key)
     }

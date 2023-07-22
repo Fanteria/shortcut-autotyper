@@ -24,22 +24,28 @@ impl Combinations {
         Ok(comb)
     }
 
-    pub fn get_sequence(&self, key: &str) -> ATResult<String> {
-        let command = Command::from_str(key)?;
-        let combinations = match self.combinations.get(command.get_name()) {
-            Some(c) => Self::decompose(c)?,
-            None => return ErrType::KeyIsInCombinations(String::from(command.get_name())).into(),
-        };
-        let mut seq = String::new();
-        for c in combinations.iter() {
-            seq.push_str(
-                &self
-                    .sequences
-                    .get_sequence(c.get_name())?
-                    .repeat(c.get_times()),
-            )
+    pub fn get_sequence_cmd(&self, command: &Command) -> ATResult<String> {
+        match self.combinations.get(command.get_name()) {
+            Some(sequence) => {
+                let commands = Self::decompose(sequence)?;
+                (0..command.get_times())
+                    .map(|_| {
+                        commands
+                            .iter()
+                            .map(|cmd| self.get_sequence_cmd(cmd))
+                            .collect::<ATResult<String>>()
+                    })
+                    .collect()
+            }
+            None => self.sequences.get_sequence_cmd(&command),
         }
-        Ok(seq.repeat(command.get_times()))
+    }
+
+    pub fn get_sequence(&self, key: &str) -> ATResult<String> {
+        Self::decompose(key)?
+            .iter()
+            .map(|command| self.get_sequence_cmd(command))
+            .collect()
     }
 
     fn decompose(combination: &str) -> ATResult<Vec<Command>> {
@@ -112,14 +118,6 @@ impl Combinations {
             .insert(String::from(key), String::from(value));
 
         Ok(())
-    }
-
-    pub fn deserialize(data: &str) -> ATResult<Combinations> {
-        let deserialized = serde_json::from_str::<Combinations>(data).unwrap();
-        deserialized.sequences.is_valid();
-        deserialized.is_valid();
-        // TODO implement
-        Ok(deserialized)
     }
 }
 
