@@ -32,12 +32,7 @@ impl Sequences {
     }
 
     pub fn get_errors(&self) -> ATVecResult<()> {
-        let errors: Vec<_> = self.0.iter().filter_map(|(key, _)| Command::is_valid_name(key).err()).collect();
-        if errors.is_empty() {
-            Ok(())
-        } else {
-            Err(errors)
-        }
+        Command::are_valid_names(self.0.keys())
     }
 
     pub fn is_valid(&self) -> bool {

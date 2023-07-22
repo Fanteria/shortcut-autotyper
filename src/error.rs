@@ -31,7 +31,7 @@ impl Display for ErrType {
         match self {
             SequenceNotExist(s) => write!(f, "Key \"{s}\" not found"),
             WrongSequenceArg(s) => write!(f, "Sequence argument \"{s}\" have wrong format"),
-            InvalidKeyFormat(s) => write!(f, "Invalid sequence key \"{s}\""),
+            InvalidKeyFormat(s) => write!(f, "Key \"{s}\" have invalid format"),
             KeyIsInSequences(s) => write!(f, "Key \"{s}\" is now in sequences"),
             KeyCannotBeEmpty => write!(f, "Key cannot be empty."),
             UnknownSequence(s) => write!(f, "Sequence \"{s}\" is not registered"),

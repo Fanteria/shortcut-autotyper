@@ -1,4 +1,4 @@
-use crate::error::{ATResult, ErrAutoType, ErrType};
+use crate::error::{ATResult, ErrAutoType, ErrType, ATVecResult};
 use rand::Rng;
 use std::{ops::Range, str::FromStr};
 use std::fmt::{self, Display};
@@ -52,6 +52,15 @@ impl Command {
             Err(ErrAutoType::new(ErrType::InvalidKeyFormat(String::from(
                 name,
             ))))
+        }
+    }
+
+    pub fn are_valid_names<'a, I: Iterator<Item = &'a String>>(iter: I) -> ATVecResult<()> {
+        let errors: Vec<_> = iter.filter_map(|name| Command::is_valid_name(name).err()).collect();
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
         }
     }
 

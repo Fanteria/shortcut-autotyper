@@ -1,6 +1,6 @@
 use crate::{
     command::Command,
-    error::{ATResult, ErrAutoType, ErrType},
+    error::{ATResult, ATVecResult, ErrAutoType, ErrType},
     sequence::Sequences,
 };
 use serde::{Deserialize, Serialize};
@@ -53,18 +53,47 @@ impl Combinations {
             .collect()
     }
 
+    pub fn get_errors(&self) -> ATVecResult<()> {
+        let mut errors = Vec::new();
+        if let Err(e) = &mut Command::are_valid_names(self.combinations.keys()) {
+            errors.append(e)
+        }
+        if let Err(e) = &mut self.sequences.get_errors() {
+            errors.append(e)
+        }
+        self.combinations.values().for_each(|combination| {
+            match Combinations::decompose(combination) {
+                Ok(commands) => commands
+                    .iter()
+                    .for_each(|command| match command.is_valid() {
+                        Ok(_) => match self.sequences.get(command.get_name()) {
+                            Some(_) => {}
+                            None => errors.push(ErrAutoType::new(ErrType::UnknownSequence(
+                                String::from(command.get_name()),
+                            ))),
+                        },
+                        Err(e) => errors.push(e),
+                    }),
+                Err(e) => errors.push(e),
+            }
+        });
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
+
     pub fn is_valid(&self) -> bool {
-        !self.combinations
-            .iter()
-            .any(|(key, value)| {
-                Command::is_valid_name(key).is_err()
-                    || match Self::decompose(value) {
-                        Ok(combinations) => combinations
-                            .iter()
-                            .any(|command| self.sequences.get(command.get_name()).is_none()),
-                        Err(_) => true,
-                    }
-            })
+        !self.combinations.iter().any(|(key, value)| {
+            Command::is_valid_name(key).is_err()
+                || match Self::decompose(value) {
+                    Ok(combinations) => combinations
+                        .iter()
+                        .any(|command| self.sequences.get(command.get_name()).is_none()),
+                    Err(_) => true,
+                }
+        })
     }
 
     pub fn insert(&mut self, key: &str, value: &str) -> ATResult<()> {
@@ -120,21 +149,29 @@ mod tests {
     fn get_sequence() -> ATResult<()> {
         let combinations = example_combination();
         for _ in 0..1000 {
-            let seq = combinations.get_sequence("X1")?; 
+            let seq = combinations.get_sequence("X1")?;
             assert!(seq.len() >= "A1A1B1B1B1".len());
             assert!(seq.len() <= "A1A1B1B1B1B1B1".len());
             assert!(seq.starts_with("A1A1B1B1B1"));
         }
         for _ in 0..1000 {
-            let seq = combinations.get_sequence("X2")?; 
+            let seq = combinations.get_sequence("X2")?;
             assert!(seq.len() >= "A1A1B1B1B1".len() * 2, "Sequence: {}\n", seq);
-            assert!(seq.len() <= "A1A1B1B1B1B1B1".len() * 2, "Sequence: {}\n", seq);
+            assert!(
+                seq.len() <= "A1A1B1B1B1B1B1".len() * 2,
+                "Sequence: {}\n",
+                seq
+            );
             assert!(seq.starts_with("A1A1B1B1B1"), "Sequence: {}\n", seq);
         }
         for _ in 0..1000 {
-            let seq = combinations.get_sequence("X3..5")?; 
+            let seq = combinations.get_sequence("X3..5")?;
             assert!(seq.len() >= "A1A1B1B1B1".len() * 3, "Sequence: {}\n", seq);
-            assert!(seq.len() <= "A1A1B1B1B1B1B1".len() * 5, "Sequence: {}\n", seq);
+            assert!(
+                seq.len() <= "A1A1B1B1B1B1B1".len() * 5,
+                "Sequence: {}\n",
+                seq
+            );
             assert!(seq.starts_with("A1A1B1B1B1"), "Sequence: {}\n", seq);
         }
         Ok(())
@@ -152,6 +189,67 @@ mod tests {
             vec![cmd::new("A"), cmd::new("B")]
         );
         Ok(())
+    }
+
+    #[test]
+    fn get_errors() {
+        let get_sequence =
+            || Sequences::new(&[("A", "A1"), ("B", "B1"), ("AB", "AB1"), ("BA", "BA1")]).unwrap();
+        let get_combinations = |combs: &[(&str, &str)]| {
+            let mut combinations = HashMap::new();
+            combs.iter().for_each(|(key, value)| {
+                combinations.insert(String::from(*key), String::from(*value));
+            });
+            combinations
+        };
+
+        let errors = Combinations::new(get_sequence(), &[("X", "A3 B3..5")])
+            .unwrap()
+            .get_errors();
+        assert_eq!(errors, Ok(()));
+        let errors = Combinations {
+            sequences: get_sequence(),
+            combinations: get_combinations(&[("X", "A3 B~3..5"), ("Y", "A C3")]),
+        }
+        .get_errors()
+        .unwrap_err();
+        assert!(
+            errors.contains(&ErrAutoType::new(ErrType::InvalidKeyFormat(String::from(
+                "B~"
+            ))))
+        );
+        assert!(
+            errors.contains(&ErrAutoType::new(ErrType::UnknownSequence(String::from(
+                "C"
+            ))))
+        );
+    }
+
+    #[test]
+    fn is_valid() {
+        let get_sequence =
+            || Sequences::new(&[("A", "A1"), ("B", "B1"), ("AB", "AB1"), ("BA", "BA1")]).unwrap();
+        let get_combinations = |combs: &[(&str, &str)]| {
+            let mut combinations = HashMap::new();
+            combs.iter().for_each(|(key, value)| {
+                combinations.insert(String::from(*key), String::from(*value));
+            });
+            combinations
+        };
+
+        assert!(Combinations::new(get_sequence(), &[("X", "A3 B3..5")])
+            .unwrap()
+            .is_valid());
+        assert!(!Combinations {
+            sequences: get_sequence(),
+            combinations: get_combinations(&[("X", "A3 B~3..5")]),
+        }
+        .is_valid());
+        assert!(!Combinations {
+            sequences: get_sequence(),
+            combinations: get_combinations(&[("X", "A3 C3..5")]),
+        }
+        .is_valid());
     }
 
     #[test]
