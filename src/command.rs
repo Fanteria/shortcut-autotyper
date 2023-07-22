@@ -1,0 +1,215 @@
+use crate::error::{ATResult, ATVecResult, ErrAutoType, ErrType};
+use rand::Rng;
+use std::fmt::{self, Display};
+use std::{ops::Range, str::FromStr};
+
+#[derive(Debug, PartialEq, Eq)]
+enum Times {
+    Number(usize),
+    Range(Range<usize>),
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Command {
+    name: String,
+    times: Option<Times>,
+}
+
+impl Command {
+    pub fn new(name: &str) -> Command {
+        Command {
+            name: String::from(name),
+            times: None,
+        }
+    }
+
+    pub fn new_number(name: &str, num: usize) -> Command {
+        Command {
+            name: String::from(name),
+            times: Some(Times::Number(num)),
+        }
+    }
+
+    pub fn new_range(name: &str, range: Range<usize>) -> Command {
+        Command {
+            name: String::from(name),
+            times: Some(Times::Range(range)),
+        }
+    }
+
+    pub fn is_valid(&self) -> ATResult<()> {
+        Self::is_valid_name(&self.name)
+    }
+
+    pub fn is_valid_name(name: &str) -> ATResult<()> {
+        if name.is_empty() {
+            return ErrType::KeyCannotBeEmpty.into();
+        }
+
+        if !name.chars().any(|c| !c.is_alphabetic()) {
+            Ok(())
+        } else {
+            ErrType::InvalidKeyFormat(String::from(name)).into()
+        }
+    }
+
+    pub fn are_valid_names<'a, I: Iterator<Item = &'a String>>(iter: I) -> ATVecResult<()> {
+        let errors: Vec<_> = iter
+            .filter_map(|name| Command::is_valid_name(name).err())
+            .collect();
+        if errors.is_empty() {
+            Ok(())
+        } else {
+            Err(errors)
+        }
+    }
+
+    pub fn get_times(&self) -> usize {
+        match &self.times {
+            Some(Times::Number(n)) => *n,
+            Some(Times::Range(r)) => rand::thread_rng().gen_range(r.start..r.end),
+            None => 1,
+        }
+    }
+
+    pub fn get_name(&self) -> &str {
+        &self.name
+    }
+}
+
+impl FromStr for Command {
+    type Err = ErrAutoType;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.chars().position(|c| c.is_ascii_digit()) {
+            Some(i) => {
+                Self::is_valid_name(&s[..i])?;
+                Ok(Command {
+                    name: String::from(&s[..i]),
+                    times: Some(Times::from_str(&s[i..])?),
+                })
+            }
+            None => {
+                Self::is_valid_name(s)?;
+                Ok(Command {
+                    name: String::from(s),
+                    times: None,
+                })
+            }
+        }
+    }
+}
+
+impl Display for Command {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self.times {
+            Some(times) => write!(f, "{}{}", self.name, times),
+            None => write!(f, "{}", self.name),
+        }
+    }
+}
+
+impl FromStr for Times {
+    type Err = ErrAutoType;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if let Ok(times) = s.parse::<usize>() {
+            return Ok(Times::Number(times));
+        };
+        let index = match s.find("..") {
+            Some(i) => i,
+            None => return ErrType::WrongSequenceArg(String::from(s)).into(),
+        };
+        match (s[..index].parse::<usize>(), s[index + 2..].parse::<usize>()) {
+            (Ok(start), Ok(end)) if start <= end => Ok(Times::Range(start..end)),
+            (Ok(start), Ok(end)) => ErrType::RangeMustNotBeEmpty(start..end).into(),
+            _ => ErrType::WrongSequenceArg(String::from(s)).into(),
+        }
+    }
+}
+
+impl Display for Times {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            Times::Number(n) => write!(f, "{n}"),
+            Times::Range(r) => write!(f, "{}..{}", r.start, r.end),
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::error::ATResult;
+
+    use super::*;
+
+    #[test]
+    fn is_valid_name() -> ATResult<()> {
+        Command::is_valid_name("A")?;
+        Command::is_valid_name("BCDE")?;
+        assert_eq!(Command::is_valid_name(""), ErrType::KeyCannotBeEmpty.into());
+        assert_eq!(
+            Command::is_valid_name("1"),
+            ErrType::InvalidKeyFormat(String::from("1")).into()
+        );
+        assert_eq!(
+            Command::is_valid_name("A4"),
+            ErrType::InvalidKeyFormat(String::from("A4")).into()
+        );
+        assert_eq!(
+            Command::is_valid_name("/A"),
+            ErrType::InvalidKeyFormat(String::from("/A")).into()
+        );
+        assert_eq!(
+            Command::is_valid_name("B A"),
+            ErrType::InvalidKeyFormat(String::from("B A")).into()
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn times_from_str() -> ATResult<()> {
+        assert_eq!(Times::from_str("1")?, Times::Number(1));
+        assert_eq!(Times::from_str("5")?, Times::Number(5));
+        assert_eq!(Times::from_str("57")?, Times::Number(57));
+        assert_eq!(Times::from_str("5..7")?, Times::Range(5..7));
+        assert!(Times::from_str("5..").is_err());
+        assert!(Times::from_str("..7").is_err());
+        assert!(Times::from_str("5..=7").is_err());
+        assert!(Times::from_str("57a37").is_err());
+        assert!(Times::from_str("57..7").is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn command_from_str() -> ATResult<()> {
+        assert_eq!(Command::from_str("A")?, Command::new("A"));
+        assert_eq!(Command::from_str("AB")?, Command::new("AB"));
+        assert_eq!(Command::from_str("A1")?, Command::new_number("A", 1));
+        assert_eq!(Command::from_str("CDE5")?, Command::new_number("CDE", 5));
+        assert_eq!(Command::from_str("A3..6")?, Command::new_range("A", 3..6));
+        assert!(Command::from_str("").is_err());
+        assert!(Command::from_str("A B").is_err());
+        assert!(Command::from_str("A 5").is_err());
+        assert!(Command::from_str("4").is_err());
+        Ok(())
+    }
+
+    #[test]
+    fn get_times() {
+        let range_check = |start, end| {
+            for _ in 0..100 {
+                let times = Command::new_range("", start..end).get_times();
+                assert!(times >= start);
+                assert!(times < end);
+            }
+        };
+        assert_eq!(Command::new("").get_times(), 1);
+        assert_eq!(Command::new_number("", 1).get_times(), 1);
+        assert_eq!(Command::new_number("", 5).get_times(), 5);
+        assert_eq!(Command::new_number("", 66).get_times(), 66);
+        range_check(10, 100);
+        range_check(0, 3);
+        range_check(3, 7);
+    }
+}
