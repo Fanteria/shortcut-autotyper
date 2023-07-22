@@ -1,7 +1,7 @@
-use crate::error::{ATResult, ErrAutoType, ErrType, ATVecResult};
+use crate::error::{ATResult, ATVecResult, ErrAutoType, ErrType};
 use rand::Rng;
-use std::{ops::Range, str::FromStr};
 use std::fmt::{self, Display};
+use std::{ops::Range, str::FromStr};
 
 #[derive(Debug, PartialEq, Eq)]
 enum Times {
@@ -43,20 +43,20 @@ impl Command {
 
     pub fn is_valid_name(name: &str) -> ATResult<()> {
         if name.is_empty() {
-            return Err(ErrAutoType::new(ErrType::KeyCannotBeEmpty));
+            return ErrType::KeyCannotBeEmpty.into();
         }
 
         if !name.chars().any(|c| !c.is_alphabetic()) {
             Ok(())
         } else {
-            Err(ErrAutoType::new(ErrType::InvalidKeyFormat(String::from(
-                name,
-            ))))
+            ErrType::InvalidKeyFormat(String::from(name)).into()
         }
     }
 
     pub fn are_valid_names<'a, I: Iterator<Item = &'a String>>(iter: I) -> ATVecResult<()> {
-        let errors: Vec<_> = iter.filter_map(|name| Command::is_valid_name(name).err()).collect();
+        let errors: Vec<_> = iter
+            .filter_map(|name| Command::is_valid_name(name).err())
+            .collect();
         if errors.is_empty() {
             Ok(())
         } else {
@@ -119,12 +119,12 @@ impl FromStr for Times {
         };
         let index = match s.find("..") {
             Some(i) => i,
-            None => return Err(ErrAutoType::new(ErrType::WrongSequenceArg(String::from(s)))),
+            None => return ErrType::WrongSequenceArg(String::from(s)).into(),
         };
         match (s[..index].parse::<usize>(), s[index + 2..].parse::<usize>()) {
             (Ok(start), Ok(end)) if start <= end => Ok(Times::Range(start..end)),
-            (Ok(start), Ok(end)) => Err(ErrAutoType::new(ErrType::RangeMustNotBeEmpty(start..end))),
-            _ => Err(ErrAutoType::new(ErrType::WrongSequenceArg(String::from(s)))),
+            (Ok(start), Ok(end)) => ErrType::RangeMustNotBeEmpty(start..end).into(),
+            _ => ErrType::WrongSequenceArg(String::from(s)).into(),
         }
     }
 }
@@ -135,7 +135,6 @@ impl Display for Times {
             Times::Number(n) => write!(f, "{n}"),
             Times::Range(r) => write!(f, "{}..{}", r.start, r.end),
         }
-        
     }
 }
 
@@ -145,38 +144,26 @@ mod tests {
 
     use super::*;
 
-
     #[test]
     fn is_valid_name() -> ATResult<()> {
         Command::is_valid_name("A")?;
         Command::is_valid_name("BCDE")?;
-        assert_eq!(
-            Command::is_valid_name(""),
-            Err(ErrAutoType::new(ErrType::KeyCannotBeEmpty))
-        );
+        assert_eq!(Command::is_valid_name(""), ErrType::KeyCannotBeEmpty.into());
         assert_eq!(
             Command::is_valid_name("1"),
-            Err(ErrAutoType::new(ErrType::InvalidKeyFormat(String::from(
-                "1"
-            ))))
+            ErrType::InvalidKeyFormat(String::from("1")).into()
         );
         assert_eq!(
             Command::is_valid_name("A4"),
-            Err(ErrAutoType::new(ErrType::InvalidKeyFormat(String::from(
-                "A4"
-            ))))
+            ErrType::InvalidKeyFormat(String::from("A4")).into()
         );
         assert_eq!(
             Command::is_valid_name("/A"),
-            Err(ErrAutoType::new(ErrType::InvalidKeyFormat(String::from(
-                "/A"
-            ))))
+            ErrType::InvalidKeyFormat(String::from("/A")).into()
         );
         assert_eq!(
             Command::is_valid_name("B A"),
-            Err(ErrAutoType::new(ErrType::InvalidKeyFormat(String::from(
-                "B A"
-            ))))
+            ErrType::InvalidKeyFormat(String::from("B A")).into()
         );
         Ok(())
     }
@@ -226,5 +213,4 @@ mod tests {
         range_check(0, 3);
         range_check(3, 7);
     }
-
 }

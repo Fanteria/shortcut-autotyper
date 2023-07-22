@@ -28,11 +28,7 @@ impl Combinations {
         let command = Command::from_str(key)?;
         let combinations = match self.combinations.get(command.get_name()) {
             Some(c) => Self::decompose(c)?,
-            None => {
-                return Err(ErrAutoType::new(ErrType::KeyIsInCombinations(
-                    String::from(command.get_name()),
-                )))
-            }
+            None => return ErrType::KeyIsInCombinations(String::from(command.get_name())).into(),
         };
         let mut seq = String::new();
         for c in combinations.iter() {
@@ -99,23 +95,17 @@ impl Combinations {
     pub fn insert(&mut self, key: &str, value: &str) -> ATResult<()> {
         Command::is_valid_name(key)?;
         if self.sequences.get(key).is_some() {
-            return Err(ErrAutoType::new(ErrType::KeyIsInSequences(String::from(
-                key,
-            ))));
+            return ErrType::KeyIsInSequences(String::from(key)).into();
         };
         if self.combinations.get(key).is_some() {
-            return Err(ErrAutoType::new(ErrType::KeyIsInCombinations(
-                String::from(key),
-            )));
+            return ErrType::KeyIsInCombinations(String::from(key)).into();
         };
         let commands = Self::decompose(value)?;
         if let Some(cmd) = commands
             .iter()
             .find(|cmd| self.sequences.get(cmd.get_name()).is_none())
         {
-            return Err(ErrAutoType::new(ErrType::SequenceNotExist(String::from(
-                cmd.get_name(),
-            ))));
+            return ErrType::SequenceNotExist(String::from(cmd.get_name())).into();
         };
 
         self.combinations
@@ -223,6 +213,9 @@ mod tests {
                 "C"
             ))))
         );
+        for i in errors {
+            println!("{}", i);
+        }
     }
 
     #[test]
@@ -266,29 +259,21 @@ mod tests {
 
         assert_eq!(
             comb.insert("X", ""),
-            Err(ErrAutoType::new(ErrType::KeyIsInCombinations(
-                String::from("X")
-            )))
+            ErrType::KeyIsInCombinations(String::from("X")).into()
         );
         assert_eq!(
             comb.insert("Y", ""),
-            Err(ErrAutoType::new(ErrType::KeyIsInCombinations(
-                String::from("Y")
-            )))
+            ErrType::KeyIsInCombinations(String::from("Y")).into()
         );
 
         assert_eq!(
             comb.insert("A", ""),
-            Err(ErrAutoType::new(ErrType::KeyIsInSequences(String::from(
-                "A"
-            ))))
+            ErrType::KeyIsInSequences(String::from("A")).into()
         );
 
         assert_eq!(
             comb.insert("AB", ""),
-            Err(ErrAutoType::new(ErrType::KeyIsInSequences(String::from(
-                "AB"
-            ))))
+            ErrType::KeyIsInSequences(String::from("AB")).into()
         );
 
         Ok(())

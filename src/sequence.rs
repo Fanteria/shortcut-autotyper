@@ -1,6 +1,6 @@
 use crate::{
-    error::{ATResult, ATVecResult, ErrAutoType, ErrType},
     command::Command,
+    error::{ATResult, ATVecResult, ErrAutoType, ErrType},
 };
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, str::FromStr};
@@ -21,9 +21,7 @@ impl Sequences {
         let command = Command::from_str(key)?;
         match self.0.get(command.get_name()) {
             Some(s) => Ok(s.repeat(command.get_times())),
-            None => Err(ErrAutoType::new(ErrType::SequenceNotExist(String::from(
-                command.get_name(),
-            )))),
+            None => ErrType::SequenceNotExist(String::from(command.get_name())).into(),
         }
     }
 
@@ -36,7 +34,8 @@ impl Sequences {
     }
 
     pub fn is_valid(&self) -> bool {
-        !self.0
+        !self
+            .0
             .iter()
             .any(|(key, _)| Command::is_valid_name(key).is_err())
     }
@@ -44,9 +43,7 @@ impl Sequences {
     pub fn insert(&mut self, key: &str, value: &str) -> ATResult<()> {
         Command::is_valid_name(key)?;
         match self.0.get(key) {
-            Some(_) => Err(ErrAutoType::new(ErrType::KeyIsInSequences(String::from(
-                key,
-            )))),
+            Some(_) => ErrType::KeyIsInSequences(String::from(key)).into(),
             None => {
                 self.0.insert(String::from(key), String::from(value));
                 Ok(())
@@ -89,15 +86,11 @@ mod tests {
         assert_eq!(seq.get_sequence("AB"), Ok(String::from("AB1")));
         assert_eq!(
             seq.get_sequence("X"),
-            Err(ErrAutoType::new(ErrType::SequenceNotExist(String::from(
-                "X"
-            ))))
+            ErrType::SequenceNotExist(String::from("X")).into()
         );
         assert_eq!(
             seq.get_sequence("Y"),
-            Err(ErrAutoType::new(ErrType::SequenceNotExist(String::from(
-                "Y"
-            ))))
+            ErrType::SequenceNotExist(String::from("Y")).into()
         );
     }
 
@@ -112,15 +105,11 @@ mod tests {
 
         assert_eq!(
             seq.get_sequence("X2"),
-            Err(ErrAutoType::new(ErrType::SequenceNotExist(String::from(
-                "X"
-            ))))
+            ErrType::SequenceNotExist(String::from("X")).into()
         );
         assert_eq!(
             seq.get_sequence("Y5"),
-            Err(ErrAutoType::new(ErrType::SequenceNotExist(String::from(
-                "Y"
-            ))))
+            ErrType::SequenceNotExist(String::from("Y")).into()
         );
 
         Ok(())
@@ -158,14 +147,30 @@ mod tests {
         seq.insert(String::from("/A"), String::from(""));
         seq.insert(String::from("B A"), String::from(""));
         let seq = Sequences(seq);
-        let errors = seq.get_errors().unwrap_err(); 
+        let errors = seq.get_errors().unwrap_err();
 
         assert_eq!(errors.len(), 5);
         assert!(errors.contains(&ErrAutoType::new(ErrType::KeyCannotBeEmpty)));
-        assert!(errors.contains(&ErrAutoType::new(ErrType::InvalidKeyFormat(String::from("1")))));
-        assert!(errors.contains(&ErrAutoType::new(ErrType::InvalidKeyFormat(String::from("A4")))));
-        assert!(errors.contains(&ErrAutoType::new(ErrType::InvalidKeyFormat(String::from("/A")))));
-        assert!(errors.contains(&ErrAutoType::new(ErrType::InvalidKeyFormat(String::from("B A")))));
+        assert!(
+            errors.contains(&ErrAutoType::new(ErrType::InvalidKeyFormat(String::from(
+                "1"
+            ))))
+        );
+        assert!(
+            errors.contains(&ErrAutoType::new(ErrType::InvalidKeyFormat(String::from(
+                "A4"
+            ))))
+        );
+        assert!(
+            errors.contains(&ErrAutoType::new(ErrType::InvalidKeyFormat(String::from(
+                "/A"
+            ))))
+        );
+        assert!(
+            errors.contains(&ErrAutoType::new(ErrType::InvalidKeyFormat(String::from(
+                "B A"
+            ))))
+        );
     }
 
     #[test]

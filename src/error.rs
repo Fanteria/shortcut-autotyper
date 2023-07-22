@@ -23,8 +23,6 @@ pub struct ErrAutoType {
     message: Option<String>,
 }
 
-impl Error for ErrAutoType {}
-
 impl Display for ErrType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         use ErrType::*;
@@ -41,6 +39,14 @@ impl Display for ErrType {
     }
 }
 
+impl<T> From<ErrType> for core::result::Result<T, ErrAutoType> {
+    fn from(error_type: ErrType) -> Self {
+        Err(error_type.into())
+    }
+}
+
+impl Error for ErrAutoType {}
+
 impl Display for ErrAutoType {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match &self.message {
@@ -53,6 +59,12 @@ impl Display for ErrAutoType {
 impl PartialEq for ErrAutoType {
     fn eq(&self, other: &Self) -> bool {
         self.err_type == other.err_type
+    }
+}
+
+impl From<ErrType> for ErrAutoType {
+    fn from(error_type: ErrType) -> Self {
+        ErrAutoType::new(error_type)
     }
 }
 
