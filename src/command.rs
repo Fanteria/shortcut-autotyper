@@ -65,7 +65,6 @@ impl Command {
     }
 
     pub fn get_times(&self) -> usize {
-        let x = 1..2;
         match &self.times {
             Some(Times::Number(n)) => *n,
             Some(Times::Range(r)) => rand::thread_rng().gen_range(r.start..r.end),
