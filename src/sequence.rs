@@ -1,6 +1,6 @@
 use crate::{
     command::Command,
-    error::{ATResult, ATVecResult, ErrAutoType, ErrType},
+    error::{ATResult, ATVecResult, ErrType},
 };
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, str::FromStr};
@@ -150,27 +150,11 @@ mod tests {
         let errors = seq.get_errors().unwrap_err();
 
         assert_eq!(errors.len(), 5);
-        assert!(errors.contains(&ErrAutoType::new(ErrType::KeyCannotBeEmpty)));
-        assert!(
-            errors.contains(&ErrAutoType::new(ErrType::InvalidKeyFormat(String::from(
-                "1"
-            ))))
-        );
-        assert!(
-            errors.contains(&ErrAutoType::new(ErrType::InvalidKeyFormat(String::from(
-                "A4"
-            ))))
-        );
-        assert!(
-            errors.contains(&ErrAutoType::new(ErrType::InvalidKeyFormat(String::from(
-                "/A"
-            ))))
-        );
-        assert!(
-            errors.contains(&ErrAutoType::new(ErrType::InvalidKeyFormat(String::from(
-                "B A"
-            ))))
-        );
+        assert!(errors.contains(&ErrType::KeyCannotBeEmpty.into()));
+        assert!(errors.contains(&ErrType::InvalidKeyFormat(String::from("1")).into()));
+        assert!(errors.contains(&ErrType::InvalidKeyFormat(String::from("A4")).into()));
+        assert!(errors.contains(&ErrType::InvalidKeyFormat(String::from("/A")).into()));
+        assert!(errors.contains(&ErrType::InvalidKeyFormat(String::from("B A")).into()));
     }
 
     #[test]
