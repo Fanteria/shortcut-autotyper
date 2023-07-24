@@ -6,6 +6,7 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, str::FromStr};
 
+/// Combinations of existing [`Sequences`].
 #[derive(Deserialize, Serialize, Debug, PartialEq)]
 pub struct Combinations {
     combinations: HashMap<String, String>,
@@ -13,6 +14,16 @@ pub struct Combinations {
 }
 
 impl Combinations {
+    /// Create new instance of [`Combinations`] if identification name is valid
+    /// and unique in combinations and `sequences`. Otherwise returns error.
+    ///
+    /// ```
+    /// # use shortcut_autotyper::error::ErrType;
+    /// # use shortcut_autotyper::*;
+    /// let seq = Sequences::new(&[("A", "seq a"), ("B", "b")]).unwrap();
+    /// let comb = Combinations::new(seq, &[("X", "A2 B3")]);
+    /// assert!(comb.is_ok());
+    /// ```
     pub fn new(sequences: Sequences, combinations: &[(&str, &str)]) -> ATResult<Combinations> {
         let mut comb = Combinations {
             combinations: HashMap::new(),
@@ -24,6 +35,8 @@ impl Combinations {
         Ok(comb)
     }
 
+    /// Works similarly as [`Combinations::get_sequence()`], only takes reference
+    /// to [`Command`] instead of `key`.
     pub fn get_sequence_cmd(&self, command: &Command) -> ATResult<String> {
         match self.combinations.get(command.get_name()) {
             Some(sequence) => {
@@ -41,6 +54,17 @@ impl Combinations {
         }
     }
 
+    /// Generate sequence from given `key`. Returns string with generated
+    /// sequence or error if `key` is invalid or `key` does not exists in sequences
+    /// or combinations.
+    ///
+    /// ```
+    /// # use shortcut_autotyper::error::ErrType;
+    /// # use shortcut_autotyper::*;
+    /// let seq = Sequences::new(&[("A", "seq a"), ("B", "b")]).unwrap();
+    /// let comb = Combinations::new(seq, &[("X", "A B3")]).unwrap();
+    /// assert_eq!(comb.get_sequence("X").unwrap(), String::from("seq abbb"));
+    /// ```
     pub fn get_sequence(&self, key: &str) -> ATResult<String> {
         Self::decompose(key)?
             .iter()
@@ -48,6 +72,7 @@ impl Combinations {
             .collect()
     }
 
+    /// Decompose string to list of [`Command`]s.
     fn decompose(combination: &str) -> ATResult<Vec<Command>> {
         combination
             .split_whitespace()
@@ -55,6 +80,8 @@ impl Combinations {
             .collect()
     }
 
+    /// Returns list of all errors in [`Combinations`]. If there is no error,
+    /// returns `Ok(())`.
     pub fn get_errors(&self) -> ATVecResult<()> {
         let mut errors = Vec::new();
         if let Err(e) = &mut Command::are_valid_names(self.combinations.keys()) {
@@ -65,17 +92,15 @@ impl Combinations {
         }
         self.combinations.values().for_each(|combination| {
             match Combinations::decompose(combination) {
-                Ok(commands) => commands
-                    .iter()
-                    .for_each(|command| match command.is_valid() {
-                        Ok(_) => match self.sequences.get(command.get_name()) {
-                            Some(_) => {}
-                            None => errors.push(ErrAutoType::new(ErrType::UnknownSequence(
-                                String::from(command.get_name()),
-                            ))),
-                        },
-                        Err(e) => errors.push(e),
-                    }),
+                Ok(commands) => commands.iter().for_each(|command| match command.valid() {
+                    Ok(_) => match self.sequences.get(command.get_name()) {
+                        Some(_) => {}
+                        None => errors.push(ErrAutoType::new(ErrType::UnknownSequence(
+                            String::from(command.get_name()),
+                        ))),
+                    },
+                    Err(e) => errors.push(e),
+                }),
                 Err(e) => errors.push(e),
             }
         });
@@ -86,9 +111,10 @@ impl Combinations {
         }
     }
 
+    /// Check if [`Combinations`] are valid.
     pub fn is_valid(&self) -> bool {
         !self.combinations.iter().any(|(key, value)| {
-            Command::is_valid_name(key).is_err()
+            Command::valid_name(key).is_err()
                 || match Self::decompose(value) {
                     Ok(combinations) => combinations
                         .iter()
@@ -98,8 +124,30 @@ impl Combinations {
         })
     }
 
+    /// Insert new combination to existing combinations if `key` is valid
+    /// and in `value` are only existing [`Sequences`] or [`Combinations`].
+    ///
+    /// ```
+    /// # use shortcut_autotyper::error::ErrType;
+    /// # use shortcut_autotyper::*;
+    ///    let seq = Sequences::new(&[("A", "seq a"), ("B", "b")]).unwrap();
+    ///    let mut comb = Combinations::new(seq, &[]).unwrap();
+    ///    assert_eq!(comb.insert("X", "A B3"), Ok(()));
+    ///    assert_eq!(
+    ///        comb.insert("X", "A B3"),
+    ///        Err(ErrType::KeyIsInCombinations(String::from("X")).into())
+    ///    );
+    ///    assert_eq!(
+    ///        comb.insert("A", "A B3"),
+    ///        Err(ErrType::KeyIsInSequences(String::from("A")).into())
+    ///    );
+    ///    assert_eq!(
+    ///        comb.insert("C", "A D3"),
+    ///        Err(ErrType::SequenceNotExist(String::from("D")).into())
+    ///    );
+    /// ```
     pub fn insert(&mut self, key: &str, value: &str) -> ATResult<()> {
-        Command::is_valid_name(key)?;
+        Command::valid_name(key)?;
         if self.sequences.get(key).is_some() {
             return ErrType::KeyIsInSequences(String::from(key)).into();
         };

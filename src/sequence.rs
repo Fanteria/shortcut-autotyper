@@ -6,9 +6,23 @@ use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, str::FromStr};
 
 #[derive(Deserialize, Serialize, Default, Debug, PartialEq)]
+/// Structure for collection of defined sequences.
 pub struct Sequences(HashMap<String, String>);
 
 impl Sequences {
+    /// Create new instance of [`Sequences`] if identification name is valid
+    /// [`Command::valid_name()`] and unique.
+    /// [`Sequences`] are list of tuples, where first value is name
+    /// and second required sequence
+    ///
+    /// ```
+    /// # use shortcut_autotyper::error::ErrType;
+    /// # use shortcut_autotyper::*;
+    /// let seq = Sequences::new(&[("A", "seq a"), ("B", "seq b")]);
+    /// assert!(seq.is_ok());
+    /// let seq = Sequences::new(&[("~", "invalid seq")]);
+    /// assert_eq!(seq, Err(ErrType::InvalidKeyFormat(String::from("~")).into()));
+    /// ```
     pub fn new(sequences: &[(&str, &str)]) -> ATResult<Sequences> {
         let mut seq = Sequences(HashMap::new());
         for (key, value) in sequences.iter() {
@@ -17,6 +31,15 @@ impl Sequences {
         Ok(seq)
     }
 
+    /// Generate sequence from given `key`. Returns string with generated
+    /// sequence or error if `key` is invalid or sequence `key` does not exists.
+    ///
+    /// ```
+    /// # use shortcut_autotyper::error::ErrType;
+    /// # use shortcut_autotyper::*;
+    /// let seq = Sequences::new(&[("A", "seq a,")]).unwrap();
+    /// assert_eq!(seq.get_sequence("A3").unwrap(), String::from("seq a,seq a,seq a,"));
+    /// ```
     pub fn get_sequence(&self, key: &str) -> ATResult<String> {
         let command = Command::from_str(key)?;
         match self.0.get(command.get_name()) {
@@ -25,6 +48,8 @@ impl Sequences {
         }
     }
 
+    /// Generate sequence from given [`Command`]. Returns string with generated
+    /// sequence or error if sequence does not constraint value with command name.
     pub fn get_sequence_cmd(&self, command: &Command) -> ATResult<String> {
         match self.0.get(command.get_name()) {
             Some(s) => Ok(s.repeat(command.get_times())),
@@ -32,23 +57,30 @@ impl Sequences {
         }
     }
 
+    /// Returns a reference to the value corresponding to the key.
+    /// If value does not exists. Then returns [`None`].
     pub fn get(&self, key: &str) -> Option<&String> {
         self.0.get(key)
     }
 
+    /// Find all keys invalid and returns errors caused by them
+    /// as [`ATVecResult`]. If there are no invalid keys returns `Ok(())`.
     pub fn get_errors(&self) -> ATVecResult<()> {
         Command::are_valid_names(self.0.keys())
     }
 
+    /// Check if all keys in sequence are valid.
     pub fn is_valid(&self) -> bool {
         !self
             .0
             .iter()
-            .any(|(key, _)| Command::is_valid_name(key).is_err())
+            .any(|(key, _)| Command::valid_name(key).is_err())
     }
 
+    /// Insert `key` and `value` to sequences. If `key` is invalid,
+    /// or is in sequences, error will be returned.
     pub fn insert(&mut self, key: &str, value: &str) -> ATResult<()> {
-        Command::is_valid_name(key)?;
+        Command::valid_name(key)?;
         match self.0.get(key) {
             Some(_) => ErrType::KeyIsInSequences(String::from(key)).into(),
             None => {
@@ -127,7 +159,7 @@ mod tests {
         let seq = example_sequences();
         let repeat_check = |sequence: &str, output: &str, min, max| -> ATResult<()> {
             let mut generated;
-            for i in 0..=100 {
+            for _ in 0..=100 {
                 generated = seq.get_sequence(sequence)?;
                 assert!(generated.len() % output.len() == 0);
                 assert!(generated.len() / output.len() >= min);

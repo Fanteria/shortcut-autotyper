@@ -9,6 +9,7 @@ enum Times {
     Range(Range<usize>),
 }
 
+/// Basic structure containing name and number of repetition.
 #[derive(Debug, PartialEq, Eq)]
 pub struct Command {
     name: String,
@@ -16,6 +17,9 @@ pub struct Command {
 }
 
 impl Command {
+    /// Create new `Command` with only one repetition.
+    ///
+    /// - `name` is given name and does not have to be valid
     pub fn new(name: &str) -> Command {
         Command {
             name: String::from(name),
@@ -23,6 +27,10 @@ impl Command {
         }
     }
 
+    /// Create new `Command` with given number of repetitions.
+    ///
+    /// - `name` is given name and does not have to be valid
+    /// - `num` is the number of repetitions
     pub fn new_number(name: &str, num: usize) -> Command {
         Command {
             name: String::from(name),
@@ -30,6 +38,19 @@ impl Command {
         }
     }
 
+    /// Create new `Command` with number of repetitions randomly
+    /// selected from given range.
+    ///
+    /// - `name` is given name and have not to be valid
+    /// - `range` is a half-open range of possible repetitions
+    ///
+    /// ```
+    /// # use shortcut_autotyper::Command;
+    /// let cmd = Command::new_range("A", 3..5);
+    /// let times = cmd.get_times();
+    /// assert!(times >= 3);
+    /// assert!(times < 5);
+    /// ```
     pub fn new_range(name: &str, range: Range<usize>) -> Command {
         Command {
             name: String::from(name),
@@ -37,11 +58,29 @@ impl Command {
         }
     }
 
-    pub fn is_valid(&self) -> ATResult<()> {
-        Self::is_valid_name(&self.name)
+    /// Check if `self` structure have valid name.
+    pub fn valid(&self) -> ATResult<()> {
+        Self::valid_name(&self.name)
     }
 
-    pub fn is_valid_name(name: &str) -> ATResult<()> {
+    /// Check if given `name` is valid. A valid name can consist
+    /// only of alphabetical characters. If given name is not valid,
+    /// then it returns an error with [`ErrType::InvalidKeyFormat`].
+    ///
+    /// ```
+    /// # use shortcut_autotyper::Command;
+    /// # use shortcut_autotyper::error::ErrType;
+    /// assert_eq!(Command::valid_name("A"), Ok(()));
+    /// assert_eq!(
+    ///     Command::valid_name("A~"),
+    ///     Err(ErrType::InvalidKeyFormat(String::from("A~")).into())
+    /// );
+    /// assert_eq!(
+    ///     Command::valid_name("A B"),
+    ///     Err(ErrType::InvalidKeyFormat(String::from("A B")).into())
+    /// );
+    /// ```
+    pub fn valid_name(name: &str) -> ATResult<()> {
         if name.is_empty() {
             return ErrType::KeyCannotBeEmpty.into();
         }
@@ -53,9 +92,13 @@ impl Command {
         }
     }
 
+    /// Check if given names are valid same as [`Command::valid_name()`]
+    /// and returns a `Vec` of [`ErrType::InvalidKeyFormat`].
+    ///
+    /// - `iter` is iterator of given names
     pub fn are_valid_names<'a, I: Iterator<Item = &'a String>>(iter: I) -> ATVecResult<()> {
         let errors: Vec<_> = iter
-            .filter_map(|name| Command::is_valid_name(name).err())
+            .filter_map(|name| Command::valid_name(name).err())
             .collect();
         if errors.is_empty() {
             Ok(())
@@ -64,6 +107,8 @@ impl Command {
         }
     }
 
+    /// Return number of repetition of command, for range return one of
+    /// random possible options.
     pub fn get_times(&self) -> usize {
         match &self.times {
             Some(Times::Number(n)) => *n,
@@ -72,6 +117,7 @@ impl Command {
         }
     }
 
+    /// Return reference to name of the command.
     pub fn get_name(&self) -> &str {
         &self.name
     }
@@ -83,14 +129,14 @@ impl FromStr for Command {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.chars().position(|c| c.is_ascii_digit()) {
             Some(i) => {
-                Self::is_valid_name(&s[..i])?;
+                Self::valid_name(&s[..i])?;
                 Ok(Command {
                     name: String::from(&s[..i]),
                     times: Some(Times::from_str(&s[i..])?),
                 })
             }
             None => {
-                Self::is_valid_name(s)?;
+                Self::valid_name(s)?;
                 Ok(Command {
                     name: String::from(s),
                     times: None,
@@ -144,24 +190,24 @@ mod tests {
     use super::*;
 
     #[test]
-    fn is_valid_name() -> ATResult<()> {
-        Command::is_valid_name("A")?;
-        Command::is_valid_name("BCDE")?;
-        assert_eq!(Command::is_valid_name(""), ErrType::KeyCannotBeEmpty.into());
+    fn valid_name() -> ATResult<()> {
+        Command::valid_name("A")?;
+        Command::valid_name("BCDE")?;
+        assert_eq!(Command::valid_name(""), ErrType::KeyCannotBeEmpty.into());
         assert_eq!(
-            Command::is_valid_name("1"),
+            Command::valid_name("1"),
             ErrType::InvalidKeyFormat(String::from("1")).into()
         );
         assert_eq!(
-            Command::is_valid_name("A4"),
+            Command::valid_name("A4"),
             ErrType::InvalidKeyFormat(String::from("A4")).into()
         );
         assert_eq!(
-            Command::is_valid_name("/A"),
+            Command::valid_name("/A"),
             ErrType::InvalidKeyFormat(String::from("/A")).into()
         );
         assert_eq!(
-            Command::is_valid_name("B A"),
+            Command::valid_name("B A"),
             ErrType::InvalidKeyFormat(String::from("B A")).into()
         );
         Ok(())

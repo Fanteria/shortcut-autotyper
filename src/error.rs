@@ -2,9 +2,14 @@ use std::error::Error;
 use std::fmt::{self, Display};
 use std::ops::Range;
 
+/// Type definition for single [`ErrAutoType`].
 pub type ATResult<T> = Result<T, ErrAutoType>;
+
+/// Type definition for multiple [`ErrAutoType`].
 pub type ATVecResult<T> = Result<T, Vec<ErrAutoType>>;
 
+/// Possible error types. Enums describes type of error and constraints
+/// value that cause this error.
 #[derive(Debug, PartialEq, Eq)]
 pub enum ErrType {
     SequenceNotExist(String),
@@ -17,6 +22,7 @@ pub enum ErrType {
     RangeMustNotBeEmpty(Range<usize>),
 }
 
+/// Main error type for [`crate`]. It's [`ErrType`] with optional additional message.
 #[derive(Debug)]
 pub struct ErrAutoType {
     err_type: ErrType,

@@ -4,12 +4,17 @@ use std::{error::Error, fs::File};
 
 use std::env::{args, var};
 
-use shortcut_autotyper::combinations::Combinations;
+use shortcut_autotyper::Combinations;
 
+/// Return path to default config file.
 fn default_path() -> String {
     var("HOME").unwrap_or(String::from("~")) + "/.shortcut_autotyper.json"
 }
 
+/// Read command line arguments and return tuple
+/// where:
+/// - `Vec<String` is list of commands to execute
+/// - `Option<String>` is path to config file
 fn read_args() -> (Vec<String>, Option<String>) {
     let mut read_config = false;
     let mut config = None;
