@@ -93,6 +93,12 @@ impl Sequences {
         }
     }
 
+    /// Retrieves an iterator over the sequences.
+    ///
+    /// # Return Value
+    ///
+    /// An iterator of type `Keys<'_, String, String>` 
+    /// over the keys of the sequences.
     pub fn get_keys(&self) -> Keys<'_, String, String> {
         self.0.keys()
     }
