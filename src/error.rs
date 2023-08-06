@@ -20,6 +20,7 @@ pub enum ErrType {
     UnknownSequence(String),
     KeyIsInCombinations(String),
     RangeMustNotBeEmpty(Range<usize>),
+    ArgumentMissing(String),
 }
 
 /// Main error type for [`crate`]. It's [`ErrType`] with optional additional message.
@@ -41,6 +42,7 @@ impl Display for ErrType {
             UnknownSequence(s) => write!(f, "Sequence \"{s}\" is not registered"),
             KeyIsInCombinations(s) => write!(f, "Key \"{s}\" is now in combinations."),
             RangeMustNotBeEmpty(r) => write!(f, "Range \"{}..{}\" is empty.", r.start, r.end),
+            ArgumentMissing(a) => write!(f, "Missing value for argument: {}", a),
         }
     }
 }
