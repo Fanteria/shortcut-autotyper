@@ -3,7 +3,10 @@ use crate::{
     error::{ATResult, ATVecResult, ErrType},
 };
 use serde::{Deserialize, Serialize};
-use std::{collections::HashMap, str::FromStr};
+use std::{
+    collections::{hash_map::Keys, HashMap},
+    str::FromStr,
+};
 
 #[derive(Deserialize, Serialize, Default, Debug, PartialEq)]
 /// Structure for collection of defined sequences.
@@ -88,6 +91,10 @@ impl Sequences {
                 Ok(())
             }
         }
+    }
+
+    pub fn get_keys(&self) -> Keys<'_, String, String> {
+        self.0.keys()
     }
 }
 

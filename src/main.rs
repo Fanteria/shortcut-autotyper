@@ -15,29 +15,37 @@ fn default_path() -> String {
 /// where:
 /// - `Vec<String` is list of commands to execute
 /// - `Option<String>` is path to config file
-fn read_args() -> (Vec<String>, Option<String>) {
+fn read_args() -> (Vec<String>, Option<String>, bool) {
     let mut read_config = false;
+    let mut print_list = false;
     let mut config = None;
     let mut commands = Vec::new();
     args().skip(1).for_each(|arg| match arg.as_str() {
-        "-c" => read_config = true,
+        "-c" | "--config" => read_config = true,
+        "-l" | "--list" => print_list = true,
         _ => {
             if read_config {
                 config = Some(arg);
+                read_config = false;
             } else {
                 commands.push(arg);
             }
         }
     });
-    (commands, config)
+    (commands, config, print_list)
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let (commands, path) = read_args();
-    let mut enigo = Enigo::new();
-    enigo.set_delay(50_000);
+    let (commands, path, print_list) = read_args();
     let combinations: Combinations =
         serde_json::from_reader(File::open(path.unwrap_or(default_path()))?)?;
+    if print_list {
+        combinations.list_all_commands().iter().for_each(|command| {
+            println!("{command}");
+        });
+    }
+    let mut enigo = Enigo::new();
+    enigo.set_delay(50_000);
     commands
         .iter()
         .map(|command| combinations.get_sequence(command))

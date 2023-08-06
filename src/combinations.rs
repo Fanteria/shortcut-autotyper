@@ -50,7 +50,7 @@ impl Combinations {
                     })
                     .collect()
             }
-            None => self.sequences.get_sequence_cmd(&command),
+            None => self.sequences.get_sequence_cmd(command),
         }
     }
 
@@ -166,6 +166,16 @@ impl Combinations {
             .insert(String::from(key), String::from(value));
 
         Ok(())
+    }
+
+    pub fn list_all_commands(&self) -> Vec<&String> {
+        let mut commands = self
+            .sequences
+            .get_keys()
+            .chain(self.combinations.keys())
+            .collect::<Vec<&String>>();
+        commands.sort();
+        commands
     }
 }
 
