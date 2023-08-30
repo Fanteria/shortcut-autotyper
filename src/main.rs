@@ -15,6 +15,7 @@ fn default_path() -> String {
 enum Options {
     Nothing,
     List,
+    ListFull,
     Help,
     TooMany,
 }
@@ -48,6 +49,7 @@ fn read_args() -> Result<(Vec<String>, Option<String>, Options, u64), Box<dyn Er
             "-c" | "--config" => config = Some(get_value()?),
             "-d" | "--delay" => delay = get_value()?.parse()?,
             "-l" | "--list" => set_option(Options::List),
+            "-L" | "--list-full" => set_option(Options::ListFull),
             "-h" | "--help" => set_option(Options::Help),
             _ => commands.push(arg),
         };
@@ -61,6 +63,7 @@ fn help() -> &'static str {
 Options:
     -c --config [PATH]  Set path to config file with sequences and combinations.
     -l --list           List all avaible commands.
+    -L --list-full      List all avaible commands with output.
     -h --help           Print this help.
     -d --delay          Set delay between two key strokes, default is 50 000.
 "#
@@ -74,6 +77,11 @@ fn run() -> Result<(), Box<dyn Error>> {
         Options::List => {
             combinations.list_all_commands().iter().for_each(|command| {
                 println!("{command}");
+            });
+        }
+        Options::ListFull => {
+            combinations.list_all_commands().iter().for_each(|command| {
+                println!("{command}: {}", combinations.get_sequence(command).unwrap().replace("\n", "\\n"));
             });
         }
         Options::Help => {
