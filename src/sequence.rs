@@ -1,5 +1,6 @@
 use crate::{
     command::Command,
+    content::Content,
     error::{ATResult, ATVecResult, ErrType},
 };
 use serde::{Deserialize, Serialize};
@@ -41,21 +42,25 @@ impl Sequences {
     /// # use shortcut_autotyper::error::ErrType;
     /// # use shortcut_autotyper::*;
     /// let seq = Sequences::new(&[("A", "seq a,")]).unwrap();
-    /// assert_eq!(seq.get_sequence("A3").unwrap(), String::from("seq a,seq a,seq a,"));
+    /// assert_eq!(seq.get_sequence("A3", &Vec::new()).unwrap(), String::from("seq a,seq a,seq a,"));
     /// ```
-    pub fn get_sequence(&self, key: &str) -> ATResult<String> {
+    pub fn get_sequence(&self, key: &str, args: &Vec<String>) -> ATResult<String> {
         let command = Command::from_str(key)?;
         match self.0.get(command.get_name()) {
-            Some(s) => Ok(s.repeat(command.get_times())),
+            Some(s) => Ok(Content::from(s.as_str())
+                .generate_content(args)
+                .repeat(command.get_times())),
             None => ErrType::SequenceNotExist(String::from(command.get_name())).into(),
         }
     }
 
     /// Generate sequence from given [`Command`]. Returns string with generated
     /// sequence or error if sequence does not constraint value with command name.
-    pub fn get_sequence_cmd(&self, command: &Command) -> ATResult<String> {
+    pub fn get_sequence_cmd(&self, command: &Command, args: &Vec<String>) -> ATResult<String> {
         match self.0.get(command.get_name()) {
-            Some(s) => Ok(s.repeat(command.get_times())),
+            Some(s) => Ok(Content::from(s.as_str())
+                .generate_content(args)
+                .repeat(command.get_times())),
             None => ErrType::SequenceNotExist(String::from(command.get_name())).into(),
         }
     }
@@ -97,7 +102,7 @@ impl Sequences {
     ///
     /// # Return Value
     ///
-    /// An iterator of type `Keys<'_, String, String>` 
+    /// An iterator of type `Keys<'_, String, String>`
     /// over the keys of the sequences.
     pub fn get_keys(&self) -> Keys<'_, String, String> {
         self.0.keys()
@@ -134,14 +139,14 @@ mod tests {
     #[test]
     fn basic_get_sequence() {
         let seq = example_sequences();
-        assert_eq!(seq.get_sequence("A"), Ok(String::from("A1")));
-        assert_eq!(seq.get_sequence("AB"), Ok(String::from("AB1")));
+        assert_eq!(seq.get_sequence("A", &Vec::new()), Ok(String::from("A1")));
+        assert_eq!(seq.get_sequence("AB", &Vec::new()), Ok(String::from("AB1")));
         assert_eq!(
-            seq.get_sequence("X"),
+            seq.get_sequence("X", &Vec::new()),
             ErrType::SequenceNotExist(String::from("X")).into()
         );
         assert_eq!(
-            seq.get_sequence("Y"),
+            seq.get_sequence("Y", &Vec::new()),
             ErrType::SequenceNotExist(String::from("Y")).into()
         );
     }
@@ -149,18 +154,18 @@ mod tests {
     #[test]
     fn numbered_get_sequence() -> ATResult<()> {
         let seq = example_sequences();
-        assert_eq!(&seq.get_sequence("B1")?, "B1");
-        assert_eq!(&seq.get_sequence("BA1")?, "BA1");
+        assert_eq!(&seq.get_sequence("B1", &Vec::new())?, "B1");
+        assert_eq!(&seq.get_sequence("BA1", &Vec::new())?, "BA1");
 
-        assert_eq!(&seq.get_sequence("A2")?, "A1A1");
-        assert_eq!(&seq.get_sequence("B2")?, "B1B1");
+        assert_eq!(&seq.get_sequence("A2", &Vec::new())?, "A1A1");
+        assert_eq!(&seq.get_sequence("B2", &Vec::new())?, "B1B1");
 
         assert_eq!(
-            seq.get_sequence("X2"),
+            seq.get_sequence("X2", &Vec::new()),
             ErrType::SequenceNotExist(String::from("X")).into()
         );
         assert_eq!(
-            seq.get_sequence("Y5"),
+            seq.get_sequence("Y5", &Vec::new()),
             ErrType::SequenceNotExist(String::from("Y")).into()
         );
 
@@ -173,7 +178,7 @@ mod tests {
         let repeat_check = |sequence: &str, output: &str, min, max| -> ATResult<()> {
             let mut generated;
             for _ in 0..=100 {
-                generated = seq.get_sequence(sequence)?;
+                generated = seq.get_sequence(sequence, &Vec::new())?;
                 assert!(generated.len() % output.len() == 0);
                 assert!(generated.len() / output.len() >= min);
                 assert!(generated.len() / output.len() <= max);

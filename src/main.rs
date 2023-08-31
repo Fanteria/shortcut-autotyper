@@ -39,7 +39,7 @@ fn read_args() -> Result<(Vec<String>, Option<String>, Options, u64), Box<dyn Er
     };
     let mut config = None;
     let mut delay = 50_000;
-    let mut commands = Vec::new();
+    let mut arguments = Vec::new();
     while let Some(arg) = iter.next() {
         let mut get_value = || match iter.next() {
             Some(value) => Ok(value),
@@ -51,10 +51,10 @@ fn read_args() -> Result<(Vec<String>, Option<String>, Options, u64), Box<dyn Er
             "-l" | "--list" => set_option(Options::List),
             "-L" | "--list-full" => set_option(Options::ListFull),
             "-h" | "--help" => set_option(Options::Help),
-            _ => commands.push(arg),
+            _ => arguments.push(arg),
         };
     }
-    Ok((commands, config, option, delay))
+    Ok((arguments, config, option, delay))
 }
 
 fn help() -> &'static str {
@@ -81,7 +81,7 @@ fn run() -> Result<(), Box<dyn Error>> {
         }
         Options::ListFull => {
             combinations.list_all_commands().iter().for_each(|command| {
-                println!("{command}: {}", combinations.get_sequence(command).unwrap().replace("\n", "\\n"));
+                println!("{command}: {}", combinations.get_sequence(command, &Vec::new()).unwrap().replace("\n", "\\n"));
             });
         }
         Options::Help => {
@@ -97,14 +97,15 @@ fn run() -> Result<(), Box<dyn Error>> {
     }
     let mut enigo = Enigo::new();
     enigo.set_delay(delay);
-    commands
-        .iter()
-        .map(|command| combinations.get_sequence(command))
-        .collect::<ATResult<Vec<_>>>()?
-        .iter()
-        .for_each(|sequence| {
-            enigo.key_sequence(sequence);
-        });
+    enigo.key_sequence(&combinations.get_sequence(&commands[0], &commands)?);
+    // commands
+    //     .iter()
+    //     .map(|command| combinations.get_sequence(command, &Vec::new()))
+    //     .collect::<ATResult<Vec<_>>>()?
+    //     .iter()
+    //     .for_each(|sequence| {
+    //         enigo.key_sequence(sequence);
+    //     });
     Ok(())
 }
 

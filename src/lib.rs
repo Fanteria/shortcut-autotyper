@@ -1,6 +1,7 @@
 mod command;
 mod sequence;
 mod combinations;
+mod content;
 pub mod error;
 
 pub use crate::command::Command;

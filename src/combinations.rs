@@ -37,7 +37,7 @@ impl Combinations {
 
     /// Works similarly as [`Combinations::get_sequence()`], only takes reference
     /// to [`Command`] instead of `key`.
-    pub fn get_sequence_cmd(&self, command: &Command) -> ATResult<String> {
+    pub fn get_sequence_cmd(&self, command: &Command, args: &Vec<String>) -> ATResult<String> {
         match self.combinations.get(command.get_name()) {
             Some(sequence) => {
                 let commands = Self::decompose(sequence)?;
@@ -45,12 +45,12 @@ impl Combinations {
                     .map(|_| {
                         commands
                             .iter()
-                            .map(|cmd| self.get_sequence_cmd(cmd))
+                            .map(|cmd| self.get_sequence_cmd(cmd, args))
                             .collect::<ATResult<String>>()
                     })
                     .collect()
             }
-            None => self.sequences.get_sequence_cmd(command),
+            None => self.sequences.get_sequence_cmd(command, args),
         }
     }
 
@@ -63,12 +63,12 @@ impl Combinations {
     /// # use shortcut_autotyper::*;
     /// let seq = Sequences::new(&[("A", "seq a"), ("B", "b")]).unwrap();
     /// let comb = Combinations::new(seq, &[("X", "A B3")]).unwrap();
-    /// assert_eq!(comb.get_sequence("X").unwrap(), String::from("seq abbb"));
+    /// assert_eq!(comb.get_sequence("X", &Vec::new()).unwrap(), String::from("seq abbb"));
     /// ```
-    pub fn get_sequence(&self, key: &str) -> ATResult<String> {
+    pub fn get_sequence(&self, key: &str, args: &Vec<String>) -> ATResult<String> {
         Self::decompose(key)?
             .iter()
-            .map(|command| self.get_sequence_cmd(command))
+            .map(|command| self.get_sequence_cmd(command, args))
             .collect()
     }
 
@@ -207,13 +207,13 @@ mod tests {
     fn get_sequence() -> ATResult<()> {
         let combinations = example_combination();
         for _ in 0..1000 {
-            let seq = combinations.get_sequence("X1")?;
+            let seq = combinations.get_sequence("X1", &Vec::new())?;
             assert!(seq.len() >= "A1A1B1B1B1".len());
             assert!(seq.len() <= "A1A1B1B1B1B1B1".len());
             assert!(seq.starts_with("A1A1B1B1B1"));
         }
         for _ in 0..1000 {
-            let seq = combinations.get_sequence("X2")?;
+            let seq = combinations.get_sequence("X2", &Vec::new())?;
             assert!(seq.len() >= "A1A1B1B1B1".len() * 2, "Sequence: {}\n", seq);
             assert!(
                 seq.len() <= "A1A1B1B1B1B1B1".len() * 2,
@@ -223,7 +223,7 @@ mod tests {
             assert!(seq.starts_with("A1A1B1B1B1"), "Sequence: {}\n", seq);
         }
         for _ in 0..1000 {
-            let seq = combinations.get_sequence("X3..5")?;
+            let seq = combinations.get_sequence("X3..5", &Vec::new())?;
             assert!(seq.len() >= "A1A1B1B1B1".len() * 3, "Sequence: {}\n", seq);
             assert!(
                 seq.len() <= "A1A1B1B1B1B1B1".len() * 5,
