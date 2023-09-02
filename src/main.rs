@@ -1,5 +1,5 @@
 use enigo::{Enigo, KeyboardControllable};
-use shortcut_autotyper::error::{ATResult, ErrType};
+use shortcut_autotyper::error::ErrType;
 use std::{error::Error, fs::File};
 
 use std::env::{args, var};
@@ -98,14 +98,6 @@ fn run() -> Result<(), Box<dyn Error>> {
     let mut enigo = Enigo::new();
     enigo.set_delay(delay);
     enigo.key_sequence(&combinations.get_sequence(&commands[0], &commands)?);
-    // commands
-    //     .iter()
-    //     .map(|command| combinations.get_sequence(command, &Vec::new()))
-    //     .collect::<ATResult<Vec<_>>>()?
-    //     .iter()
-    //     .for_each(|sequence| {
-    //         enigo.key_sequence(sequence);
-    //     });
     Ok(())
 }
 
