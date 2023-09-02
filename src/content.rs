@@ -9,11 +9,11 @@ enum ContentItem {
 impl ContentItem {
     /// Generates the content based on the given arguments.
     ///
-    /// If `self` is a `[ContentItem::Value]`, it returns a clone 
+    /// If `self` is a `[ContentItem::Value]`, it returns a clone
     /// of the contained string.
-    /// If `self` is a `[ContentItem::Variable]`, it looks up 
-    /// the corresponding argument in `args` and returns its value. 
-    /// If the variable index is out of bounds, it returns 
+    /// If `self` is a `[ContentItem::Variable]`, it looks up
+    /// the corresponding argument in `args` and returns its value.
+    /// If the variable index is out of bounds, it returns
     /// a formatted placeholder string.
     pub fn generate_content(&self, args: &Vec<String>) -> String {
         match self {
@@ -40,7 +40,7 @@ impl ToString for ContentItem {
 }
 
 impl ToString for Content {
-    /// Converts the `Content` into a single string by concatenating 
+    /// Converts the `Content` into a single string by concatenating
     /// its constituent items.
     fn to_string(&self) -> String {
         self.0.iter().map(|c| c.to_string()).collect()
@@ -95,11 +95,11 @@ impl From<&str> for Content {
 }
 
 impl Content {
-    /// Generates the content for this `Content` object based 
+    /// Generates the content for this `Content` object based
     /// on the provided arguments.
     ///
-    /// It processes each `ContentItem` in the sequence and generates 
-    /// the final content by replacing variable placeholders with their 
+    /// It processes each `ContentItem` in the sequence and generates
+    /// the final content by replacing variable placeholders with their
     /// corresponding values from `args`.
     ///
     /// # Examples

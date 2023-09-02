@@ -81,7 +81,13 @@ fn run() -> Result<(), Box<dyn Error>> {
         }
         Options::ListFull => {
             combinations.list_all_commands().iter().for_each(|command| {
-                println!("{command}: {}", combinations.get_sequence(command, &Vec::new()).unwrap().replace("\n", "\\n"));
+                println!(
+                    "{command}: {}",
+                    combinations
+                        .get_sequence(command, &Vec::new())
+                        .unwrap()
+                        .replace("\n", "\\n")
+                );
             });
         }
         Options::Help => {

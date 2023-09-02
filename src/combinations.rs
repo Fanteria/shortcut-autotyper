@@ -168,17 +168,17 @@ impl Combinations {
         Ok(())
     }
 
-    /// Retrieves a sorted list of references to all 
+    /// Retrieves a sorted list of references to all
     /// available commands in the current context.
     ///
-    /// This function returns a vector containing references 
+    /// This function returns a vector containing references
     /// to all commands found in the `sequences` and `combinations`
-    /// data structures of the current context. The commands 
+    /// data structures of the current context. The commands
     /// are sorted alphabetically in ascending order.
     ///
     /// # Return Value
     ///
-    /// A `Vec<&String>` containing references to all available commands, 
+    /// A `Vec<&String>` containing references to all available commands,
     /// sorted in ascending order.
     pub fn list_all_commands(&self) -> Vec<&String> {
         let mut commands = self
