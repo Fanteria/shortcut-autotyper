@@ -24,21 +24,18 @@ enum Options {
 /// where:
 /// - `Vec<String` is list of commands to execute
 /// - `Option<String>` is path to config file
-fn read_args() -> Result<(Vec<String>, Option<String>, Options, u64), Box<dyn Error>> {
-    let mut option = Options::Nothing;
+fn read_args(option: &mut Options, config: &mut Option<String>, delay: &mut u64) -> Result<Vec<String>, Box<dyn Error>> {
     let mut iter = args().skip(1);
     let mut set_option = |new| {
-        if option == new {
+        if *option == new {
             return;
         }
-        option = if option == Options::Nothing {
+        *option = if *option == Options::Nothing {
             new
         } else {
             Options::TooMany
         };
     };
-    let mut config = None;
-    let mut delay = 50_000;
     let mut arguments = Vec::new();
     while let Some(arg) = iter.next() {
         let mut get_value = || match iter.next() {
@@ -46,15 +43,18 @@ fn read_args() -> Result<(Vec<String>, Option<String>, Options, u64), Box<dyn Er
             None => ErrType::ArgumentMissing(arg.clone()).into(),
         };
         match arg.as_str() {
-            "-c" | "--config" => config = Some(get_value()?),
-            "-d" | "--delay" => delay = get_value()?.parse()?,
+            "-c" | "--config" => *config = Some(get_value()?),
+            "-d" | "--delay" => *delay = get_value()?.parse()?,
             "-l" | "--list" => set_option(Options::List),
             "-L" | "--list-full" => set_option(Options::ListFull),
             "-h" | "--help" => set_option(Options::Help),
             _ => arguments.push(arg),
         };
     }
-    Ok((arguments, config, option, delay))
+    if arguments.is_empty() {
+        return Err("Error: Command must be set.".into())
+    }
+    Ok(arguments)
 }
 
 fn help() -> &'static str {
@@ -70,9 +70,13 @@ Options:
 }
 
 fn run() -> Result<(), Box<dyn Error>> {
-    let (commands, path, option, delay) = read_args()?;
+    let mut option = Options::Nothing;
+    let mut config = None;
+    let mut delay = 50_000;
+
+    let commands = read_args(&mut option, &mut config, &mut delay)?;
     let combinations: Combinations =
-        serde_json::from_reader(File::open(path.unwrap_or(default_path()))?)?;
+        serde_json::from_reader(File::open(config.unwrap_or(default_path()))?)?;
     match option {
         Options::List => {
             combinations.list_all_commands().iter().for_each(|command| {
@@ -92,6 +96,7 @@ fn run() -> Result<(), Box<dyn Error>> {
         }
         Options::Help => {
             println!("{}", help());
+            return Ok(())
         }
         Options::TooMany => {
             println!(
@@ -109,6 +114,6 @@ fn run() -> Result<(), Box<dyn Error>> {
 
 fn main() {
     if let Err(e) = run() {
-        println!("{}", e)
+        eprintln!("{}", e)
     }
 }
