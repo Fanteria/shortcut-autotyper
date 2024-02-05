@@ -51,7 +51,7 @@ fn read_args(option: &mut Options, config: &mut Option<String>, delay: &mut u64)
             _ => arguments.push(arg),
         };
     }
-    if arguments.is_empty() {
+    if *option == Options::Nothing && arguments.is_empty() {
         return Err("Error: Command must be set.".into())
     }
     Ok(arguments)
@@ -75,15 +75,18 @@ fn run() -> Result<(), Box<dyn Error>> {
     let mut delay = 50_000;
 
     let commands = read_args(&mut option, &mut config, &mut delay)?;
-    let combinations: Combinations =
-        serde_json::from_reader(File::open(config.unwrap_or(default_path()))?)?;
+    let get_combinations = || -> Result<Combinations, Box<dyn Error>> {
+        Ok(serde_json::from_reader(File::open(config.unwrap_or(default_path()))?)?)
+    };
+
     match option {
         Options::List => {
-            combinations.list_all_commands().iter().for_each(|command| {
+            get_combinations()?.list_all_commands().iter().for_each(|command| {
                 println!("{command}");
             });
         }
         Options::ListFull => {
+            let combinations = get_combinations()?;
             combinations.list_all_commands().iter().for_each(|command| {
                 println!(
                     "{command}: {}",
@@ -104,11 +107,12 @@ fn run() -> Result<(), Box<dyn Error>> {
                 help()
             );
         }
-        _ => {}
+        Options::Nothing => {
+            let mut enigo = Enigo::new();
+            enigo.set_delay(delay);
+            enigo.key_sequence(&get_combinations()?.get_sequence(&commands[0], &commands)?);
+        }
     }
-    let mut enigo = Enigo::new();
-    enigo.set_delay(delay);
-    enigo.key_sequence(&combinations.get_sequence(&commands[0], &commands)?);
     Ok(())
 }
 
