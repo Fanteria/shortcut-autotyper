@@ -1,5 +1,5 @@
-use enigo::{Enigo, KeyboardControllable};
 use shortcut_autotyper::error::ErrType;
+use std::process::Command as sysCommand;
 use std::{error::Error, fs::File};
 
 use std::env::{args, var};
@@ -24,7 +24,12 @@ enum Options {
 /// where:
 /// - `Vec<String` is list of commands to execute
 /// - `Option<String>` is path to config file
-fn read_args(option: &mut Options, config: &mut Option<String>, delay: &mut u64) -> Result<Vec<String>, Box<dyn Error>> {
+fn read_args(
+    option: &mut Options,
+    config: &mut Option<String>,
+    delay: &mut u64,
+    typer: &mut String,
+) -> Result<Vec<String>, Box<dyn Error>> {
     let mut iter = args().skip(1);
     let mut set_option = |new| {
         if *option == new {
@@ -45,6 +50,7 @@ fn read_args(option: &mut Options, config: &mut Option<String>, delay: &mut u64)
         match arg.as_str() {
             "-c" | "--config" => *config = Some(get_value()?),
             "-d" | "--delay" => *delay = get_value()?.parse()?,
+            "-t" | "--typer" => *typer = get_value()?.parse()?,
             "-l" | "--list" => set_option(Options::List),
             "-L" | "--list-full" => set_option(Options::ListFull),
             "-h" | "--help" => set_option(Options::Help),
@@ -52,7 +58,7 @@ fn read_args(option: &mut Options, config: &mut Option<String>, delay: &mut u64)
         };
     }
     if *option == Options::Nothing && arguments.is_empty() {
-        return Err("Error: Command must be set.".into())
+        return Err("Error: Command must be set.".into());
     }
     Ok(arguments)
 }
@@ -65,25 +71,32 @@ Options:
     -l --list           List all avaible commands.
     -L --list-full      List all avaible commands with output.
     -h --help           Print this help.
-    -d --delay          Set delay between two key strokes, default is 50 000.
+    -d --delay          Set delay between two key strokes, default is 50.
+    -t --typer          Binary to send text to terminal.
 "#
 }
 
 fn run() -> Result<(), Box<dyn Error>> {
     let mut option = Options::Nothing;
     let mut config = None;
-    let mut delay = 50_000;
+    let mut delay = 50;
+    let mut typer = String::from("wtype");
 
-    let commands = read_args(&mut option, &mut config, &mut delay)?;
+    let commands = read_args(&mut option, &mut config, &mut delay, &mut typer)?;
     let get_combinations = || -> Result<Combinations, Box<dyn Error>> {
-        Ok(serde_json::from_reader(File::open(config.unwrap_or(default_path()))?)?)
+        Ok(serde_json::from_reader(File::open(
+            config.unwrap_or(default_path()),
+        )?)?)
     };
 
     match option {
         Options::List => {
-            get_combinations()?.list_all_commands().iter().for_each(|command| {
-                println!("{command}");
-            });
+            get_combinations()?
+                .list_all_commands()
+                .iter()
+                .for_each(|command| {
+                    println!("{command}");
+                });
         }
         Options::ListFull => {
             let combinations = get_combinations()?;
@@ -99,7 +112,7 @@ fn run() -> Result<(), Box<dyn Error>> {
         }
         Options::Help => {
             println!("{}", help());
-            return Ok(())
+            return Ok(());
         }
         Options::TooMany => {
             println!(
@@ -108,9 +121,13 @@ fn run() -> Result<(), Box<dyn Error>> {
             );
         }
         Options::Nothing => {
-            let mut enigo = Enigo::new();
-            enigo.set_delay(delay);
-            enigo.key_sequence(&get_combinations()?.get_sequence(&commands[0], &commands)?);
+            let mut sys_comand = sysCommand::new(typer);
+            sys_comand.args([
+                "-d",
+                &delay.to_string(),
+                &get_combinations()?.get_sequence(&commands[0], &commands)?,
+            ]);
+            sys_comand.spawn()?;
         }
     }
     Ok(())
