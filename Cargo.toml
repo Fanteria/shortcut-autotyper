@@ -1,8 +1,9 @@
 [package]
 name = "shortcut-autotyper"
+authors = ["Jiří Alexandrovič"]
 version = "0.1.0"
 edition = "2021"
-license-file = "LICENSE"
+license = "MIT"
 keywords = ["autotyper", "shortcut"]
 readme = "README.md"
 description = "Shortcut AutoTyper is a command-line tool for automating repetitive typing tasks using predefined shortcuts defined in a JSON configuration file. Simply configure your shortcuts and let AutoTyper do the typing for you."

@@ -44,7 +44,7 @@ impl Sequences {
     /// let seq = Sequences::new(&[("A", "seq a,")]).unwrap();
     /// assert_eq!(seq.get_sequence("A3", &Vec::new()).unwrap(), String::from("seq a,seq a,seq a,"));
     /// ```
-    pub fn get_sequence(&self, key: &str, args: &Vec<String>) -> ATResult<String> {
+    pub fn get_sequence(&self, key: &str, args: &[String]) -> ATResult<String> {
         let command = Command::from_str(key)?;
         match self.0.get(command.get_name()) {
             Some(s) => Ok(Content::from(s.as_str())
@@ -56,7 +56,7 @@ impl Sequences {
 
     /// Generate sequence from given [`Command`]. Returns string with generated
     /// sequence or error if sequence does not constraint value with command name.
-    pub fn get_sequence_cmd(&self, command: &Command, args: &Vec<String>) -> ATResult<String> {
+    pub fn get_sequence_cmd(&self, command: &Command, args: &[String]) -> ATResult<String> {
         match self.0.get(command.get_name()) {
             Some(s) => Ok(Content::from(s.as_str())
                 .generate_content(args)

@@ -151,7 +151,7 @@ impl Combinations {
         if self.sequences.get(key).is_some() {
             return ErrType::KeyIsInSequences(String::from(key)).into();
         };
-        if self.combinations.get(key).is_some() {
+        if self.combinations.contains_key(key) {
             return ErrType::KeyIsInCombinations(String::from(key)).into();
         };
         let commands = Self::decompose(value)?;
@@ -321,9 +321,9 @@ mod tests {
             combinations: HashMap::new(),
         };
         comb.insert("X", "A5")?;
-        assert!(comb.combinations.get("X").is_some());
+        assert!(comb.combinations.contains_key("X"));
         comb.insert("Y", "B4 AB1..3")?;
-        assert!(comb.combinations.get("Y").is_some());
+        assert!(comb.combinations.contains_key("Y"));
 
         assert_eq!(
             comb.insert("X", ""),

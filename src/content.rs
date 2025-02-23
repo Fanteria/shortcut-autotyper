@@ -1,3 +1,5 @@
+use std::fmt::Display;
+
 /// Represents a content item that can either be a fixed
 /// string value or a variable placeholder.
 #[derive(Debug, PartialEq, Eq)]
@@ -15,7 +17,7 @@ impl ContentItem {
     /// the corresponding argument in `args` and returns its value.
     /// If the variable index is out of bounds, it returns
     /// a formatted placeholder string.
-    pub fn generate_content(&self, args: &Vec<String>) -> String {
+    pub fn generate_content(&self, args: &[String]) -> String {
         match self {
             ContentItem::Value(v) => v.clone(),
             ContentItem::Variable(v) => match args.get(*v) {
@@ -26,24 +28,22 @@ impl ContentItem {
     }
 }
 
-impl ToString for ContentItem {
+impl Display for ContentItem {
     /// Converts the `ContentItem` into a string representation.
     ///
     /// If `self` is a `Value`, it returns a clone of the contained string.
     /// If `self` is a `Variable`, it returns a formatted placeholder string.
-    fn to_string(&self) -> String {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ContentItem::Value(v) => v.clone(),
-            ContentItem::Variable(v) => format!("<{v}>"),
+            ContentItem::Value(v) => write!(f, "{v}"),
+            ContentItem::Variable(v) => write!(f, "<{v}>"),
         }
     }
 }
 
-impl ToString for Content {
-    /// Converts the `Content` into a single string by concatenating
-    /// its constituent items.
-    fn to_string(&self) -> String {
-        self.0.iter().map(|c| c.to_string()).collect()
+impl Display for Content {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.iter().try_for_each(|c| write!(f, "{c}"))
     }
 }
 
@@ -81,12 +81,10 @@ impl From<&str> for Content {
                     variable.clear();
                     read_variable = false;
                 }
+            } else if c == '<' {
+                read_variable = true;
             } else {
-                if c == '<' {
-                    read_variable = true;
-                } else {
-                    last.push(c);
-                }
+                last.push(c);
             };
         });
         cont.push(ContentItem::Value(last));
@@ -110,7 +108,7 @@ impl Content {
     /// let content = Content::from("A <1> B");
     /// assert_eq!(&content.generate_content(&vec), "A X B");
     /// ```
-    pub fn generate_content(&self, args: &Vec<String>) -> String {
+    pub fn generate_content(&self, args: &[String]) -> String {
         self.0.iter().map(|c| c.generate_content(args)).collect()
     }
 }
