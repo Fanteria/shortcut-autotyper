@@ -6,6 +6,7 @@ use shortcut_autotyper::{
 use std::{env::var, error::Error, fs::File, process::exit};
 
 const CONFIG_NAME: &str = "/.shortcut_autotyper.json";
+const DEFAULT_DELAY: usize = 50;
 
 #[derive(ValueEnum, Clone, Debug)]
 pub enum Typer {
@@ -29,9 +30,9 @@ pub struct Args {
     #[arg(long)]
     list_full: bool,
 
-    /// Set delay between two key strokes.
-    #[arg(short, long, default_value_t = 50)]
-    delay: usize,
+    /// Set delay between two key strokes. [default: 50]
+    #[arg(short, long)]
+    delay: Option<usize>,
 
     /// Binary to send text to terminal.
     #[arg(short, long, default_value = "xdotool")]
@@ -75,12 +76,15 @@ impl Args {
     }
 
     fn type_text(&self) -> Result<(), Box<dyn Error>> {
-        let combinations = self
-            .get_combinations()?
-            .get_sequence(&self.commands[0], &self.commands)?;
+        let c = self.get_combinations()?;
+        let sequence = c.get_sequence(&self.commands[0], &self.commands)?;
+        let delay = self
+            .delay
+            .or_else(|| c.get_delay(&self.commands[0]))
+            .unwrap_or(DEFAULT_DELAY);
         match &self.typer {
-            Typer::Xdotool => XDoTool::type_text(combinations, self.delay)?,
-            Typer::Wtype => Wtype::type_text(combinations, self.delay)?,
+            Typer::Xdotool => XDoTool::type_text(sequence, delay)?,
+            Typer::Wtype => Wtype::type_text(sequence, delay)?,
         }
         Ok(())
     }

@@ -9,7 +9,7 @@ use std::{
     str::FromStr,
 };
 
-#[derive(Deserialize, Serialize, Default, Debug, PartialEq)]
+#[derive(Deserialize, Serialize, Default, Debug, PartialEq, Eq)]
 /// Structure for collection of defined sequences.
 pub struct Sequences(HashMap<String, String>);
 
