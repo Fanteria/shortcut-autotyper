@@ -50,6 +50,7 @@ impl Args {
             args.get_combinations()?
                 .list_all_commands()
                 .iter()
+                .filter(|command| !command.starts_with("_"))
                 .for_each(|command| {
                     println!("{command}");
                 });
@@ -57,15 +58,19 @@ impl Args {
         }
         if args.list_full {
             let combinations = args.get_combinations()?;
-            combinations.list_all_commands().iter().for_each(|command| {
-                println!(
-                    "{command}: {}",
-                    combinations
-                        .get_sequence(command, &Vec::new())
-                        .unwrap()
-                        .replace("\n", "\\n")
-                );
-            });
+            combinations
+                .list_all_commands()
+                .iter()
+                .filter(|command| !command.starts_with("_"))
+                .for_each(|command| {
+                    println!(
+                        "{command}: {}",
+                        combinations
+                            .get_sequence(command, &Vec::new())
+                            .unwrap()
+                            .replace("\n", "\\n")
+                    );
+                });
             exit(0);
         }
         Ok(args)
