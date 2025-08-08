@@ -1,5 +1,7 @@
 # Shortcut AutoTyper
 
+[![codecov](https://codecov.io/gh/Fanteria/photo-worker/graph/badge.svg?token=9S62IJJVBH)](https://codecov.io/gh/Fanteria/photo-worker)
+
 Shortcut AutoTyper is a command-line tool that generates sequences and combinations from a configuration file and types the generated strings on the keyboard. It provides an easy way to automate typing repetitive sequences using predefined shortcuts.
 
 ## Configuration File
